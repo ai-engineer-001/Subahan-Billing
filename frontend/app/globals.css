@@ -1,0 +1,217 @@
+:root {
+  --ink: #1d1a1a;
+  --paper: #f7f1e8;
+  --accent: #c97b3b;
+  --accent-2: #38707a;
+  --shadow: rgba(16, 12, 8, 0.15);
+  --border: rgba(29, 26, 26, 0.18);
+  --success: #2f7a4b;
+  --danger: #a13a2a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  color: var(--ink);
+  background: radial-gradient(circle at top left, #fff4db 0%, var(--paper) 40%, #efe6da 100%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 48px;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.brand {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.brand-mark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: bold;
+}
+
+.brand-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.brand-subtitle {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.nav-links {
+  display: flex;
+  gap: 20px;
+  font-size: 15px;
+}
+
+.app-main {
+  flex: 1;
+  padding: 32px 48px 64px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 16px 30px var(--shadow);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.grid {
+  display: grid;
+  gap: 24px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.section-title {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+input, select, button, textarea {
+  font-family: inherit;
+}
+
+input, select, textarea {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+button {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 10px 20px var(--shadow);
+}
+
+button.secondary {
+  background: var(--accent-2);
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+
+button.danger {
+  background: var(--danger);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(56, 112, 122, 0.15);
+  color: var(--accent-2);
+  font-size: 12px;
+}
+
+.notice {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.print-card {
+  background: #fff;
+  padding: 32px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 720px) {
+  .app-header {
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .app-main {
+    padding: 24px 20px 40px;
+  }
+}
+
+@media print {
+  .app-header,
+  .nav-links,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .print-card {
+    box-shadow: none;
+    border: none;
+  }
+}

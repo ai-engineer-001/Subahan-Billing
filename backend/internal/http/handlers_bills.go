@@ -1,0 +1,58 @@
+package http
+
+import (
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/go-chi/chi/v5"
+
+	"subahan-billing-backend/internal/store"
+)
+
+func (s *Server) handleCreateBill(w http.ResponseWriter, r *http.Request) {
+	var input store.BillCreate
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid payload")
+		return
+	}
+	if len(input.Items) == 0 {
+		writeError(w, http.StatusBadRequest, "bill items are required")
+		return
+	}
+
+	bill, err := s.Store.CreateBill(r.Context(), input)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, bill)
+}
+
+func (s *Server) handleListBills(w http.ResponseWriter, r *http.Request) {
+	limit := 50
+	if v := strings.TrimSpace(r.URL.Query().Get("limit")); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil {
+			limit = parsed
+		}
+	}
+
+	bills, err := s.Store.ListBills(r.Context(), limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to list bills")
+		return
+	}
+	writeJSON(w, http.StatusOK, bills)
+}
+
+func (s *Server) handleGetBill(w http.ResponseWriter, r *http.Request) {
+	billID := chi.URLParam(r, "billId")
+	bill, err := s.Store.GetBill(r.Context(), billID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "bill not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, bill)
+}
