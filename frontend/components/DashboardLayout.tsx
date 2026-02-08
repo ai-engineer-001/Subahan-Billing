@@ -61,6 +61,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       )}
 
       <aside className={`sidebar ${sidebarOpen ? "" : "collapsed"}`}>
+        <div className="sidebar-close">
+          <button 
+            className="close-btn" 
+            onClick={() => setSidebarOpen(false)}
+            title="Close sidebar"
+          >
+            <Icons.X className="icon" />
+          </button>
+        </div>
+        
         <nav className="sidebar-nav">
           {navItems.map((item) => (
             <a
