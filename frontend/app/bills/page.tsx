@@ -25,15 +25,20 @@ type LineItem = {
   itemId: string;
   quantity: number;
   unitPrice: number;
+  discountPerUnit: number;
+  searchTerm: string;
 };
 
 export default function BillsPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [customer, setCustomer] = useState("");
-  const [lines, setLines] = useState<LineItem[]>([]);
+  const [lines, setLines] = useState<LineItem[]>([
+    { itemId: "", quantity: 1, unitPrice: 0, discountPerUnit: 0, searchTerm: "" }
+  ]);
   const [status, setStatus] = useState<string | null>(null);
   const [recentOpen, setRecentOpen] = useState(false);
+  const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null);
 
   const loadItems = async () => {
     const data = await apiFetch<Item[]>("/items");
@@ -51,7 +56,7 @@ export default function BillsPage() {
   }, []);
 
   const addLine = () => {
-    setLines([...lines, { itemId: "", quantity: 1, unitPrice: 0 }]);
+    setLines([...lines, { itemId: "", quantity: 1, unitPrice: 0, discountPerUnit: 0, searchTerm: "" }]);
   };
 
   const updateLine = (index: number, update: Partial<LineItem>) => {
@@ -64,13 +69,30 @@ export default function BillsPage() {
     const item = items.find((entry) => entry.itemId === itemId);
     updateLine(index, {
       itemId,
-      unitPrice: item ? item.sellingPrice : 0
+      unitPrice: item ? item.sellingPrice : 0,
+      discountPerUnit: 0,
+      searchTerm: ""
     });
+    setActiveSearchIndex(null);
+  };
+
+  const handleSearchChange = (index: number, value: string) => {
+    updateLine(index, { searchTerm: value, itemId: "" });
+    if (value.trim()) {
+      setActiveSearchIndex(index);
+    }
   };
 
   const removeLine = (index: number) => {
+    if (lines.length <= 1) {
+      setLines([{ itemId: "", quantity: 1, unitPrice: 0, discountPerUnit: 0, searchTerm: "" }]);
+      return;
+    }
     setLines(lines.filter((_, i) => i !== index));
   };
+
+  const getEffectiveUnitPrice = (line: LineItem) => Math.max(0, line.unitPrice - line.discountPerUnit);
+  const getLineSubtotal = (line: LineItem) => getEffectiveUnitPrice(line) * line.quantity;
 
   const handleCreateBill = async () => {
     setStatus(null);
@@ -82,7 +104,7 @@ export default function BillsPage() {
           .map((line) => ({
             itemId: line.itemId,
             quantity: Number(line.quantity),
-            unitPrice: Number(line.unitPrice)
+            unitPrice: Number(getEffectiveUnitPrice(line))
           }))
       };
 
@@ -97,7 +119,7 @@ export default function BillsPage() {
       });
 
       setCustomer("");
-      setLines([]);
+      setLines([{ itemId: "", quantity: 1, unitPrice: 0, discountPerUnit: 0, searchTerm: "" }]);
       await loadBills();
       setStatus("Bill created successfully");
     } catch (err) {
@@ -120,7 +142,8 @@ export default function BillsPage() {
     }
   };
 
-  const totalAmount = lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
+  const totalAmount = lines.reduce((sum, line) => sum + getLineSubtotal(line), 0);
+  const hasSelectedItems = lines.some((line) => line.itemId);
 
   return (
     <ProtectedRoute>
@@ -160,77 +183,127 @@ export default function BillsPage() {
                     </button>
                   </div>
 
-                  {lines.map((line, index) => {
-                    const selectedItem = items.find(item => item.itemId === line.itemId);
-                    const lineTotal = line.quantity * line.unitPrice;
-                    const profitPerUnit = selectedItem?.buyingPrice 
-                      ? line.unitPrice - selectedItem.buyingPrice 
-                      : 0;
-                    const totalProfit = profitPerUnit * line.quantity;
-                    const profitMargin = selectedItem?.buyingPrice && selectedItem.buyingPrice > 0
-                      ? ((line.unitPrice - selectedItem.buyingPrice) / line.unitPrice * 100)
-                      : 0;
+                  <div className="table-container">
+                    <table className="table bill-items-table">
+                      <thead>
+                        <tr>
+                          <th>Item</th>
+                          <th className="cell-center">Unit</th>
+                          <th className="cell-center">Qty</th>
+                          <th className="cell-right">Unit Price (KWD)</th>
+                          <th className="cell-right">Discount/Unit</th>
+                          <th className="cell-right">Subtotal</th>
+                          <th className="cell-right">Profit %</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lines.map((line, index) => {
+                          const selectedItem = items.find((item) => item.itemId === line.itemId);
+                          const effectiveUnitPrice = getEffectiveUnitPrice(line);
+                          const lineSubtotal = getLineSubtotal(line);
+                          const profitMargin = selectedItem?.buyingPrice && effectiveUnitPrice > 0
+                            ? ((effectiveUnitPrice - selectedItem.buyingPrice) / effectiveUnitPrice) * 100
+                            : null;
+                          
+                          const displayValue = line.itemId && selectedItem
+                            ? `${selectedItem.itemId} - ${selectedItem.name}`
+                            : line.searchTerm;
+                          
+                          const filteredItems = !line.itemId && line.searchTerm
+                            ? items
+                                .filter((item) => {
+                                  const query = line.searchTerm.toLowerCase();
+                                  return (
+                                    item.itemId.toLowerCase().includes(query) ||
+                                    item.name.toLowerCase().includes(query)
+                                  );
+                                })
+                                .slice(0, 10)
+                            : [];
 
-                    return (
-                    <div key={index} className="card line-item-card">
-                      <div className="form-group">
-                        <label className="form-label">Item</label>
-                        <select value={line.itemId} onChange={(e) => handleSelectItem(index, e.target.value)}>
-                          <option value="">Select item</option>
-                          {items.map((item) => (
-                            <option key={item.itemId} value={item.itemId}>
-                              {item.name} ({item.itemId})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="line-item-grid">
-                        <div className="form-group">
-                          <label className="form-label">Quantity {selectedItem && `(${selectedItem.unit})`}</label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={line.quantity}
-                            onChange={(e) => updateLine(index, { quantity: Number(e.target.value) })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Unit Price (KWD)</label>
-                          <input
-                            type="number"
-                            step="0.001"
-                            value={line.unitPrice}
-                            onChange={(e) => updateLine(index, { unitPrice: Number(e.target.value) })}
-                          />
-                        </div>
-                      </div>
-                      {selectedItem && selectedItem.buyingPrice && (
-                        <div className="line-item-stats">
-                          <div className="stat-row">
-                            <span className="stat-label">Line Total:</span>
-                            <span className="stat-value">{lineTotal.toFixed(3)} KWD</span>
-                          </div>
-                          <div className="stat-row">
-                            <span className="stat-label">Profit Margin:</span>
-                            <span className="stat-value profit">{profitMargin.toFixed(1)}%</span>
-                          </div>
-                          <div className="stat-row">
-                            <span className="stat-label">Total Profit:</span>
-                            <span className="stat-value profit">{totalProfit.toFixed(3)} KWD</span>
-                          </div>
-                        </div>
-                      )}
-                      <button type="button" className="btn btn-ghost btn-danger btn-block" onClick={() => removeLine(index)}>
-                        <Icons.Trash className="btn-icon" />
-                        <span>Remove</span>
-                      </button>
-                    </div>
-                    );
-                  })}
-
-                  {lines.length === 0 && (
-                    <p className="notice">No items added yet. Click "Add Item" to start.</p>
-                  )}
+                          return (
+                            <tr key={index}>
+                              <td>
+                                <div className="item-search">
+                                  <input
+                                    value={displayValue}
+                                    onChange={(e) => handleSearchChange(index, e.target.value)}
+                                    onFocus={() => setActiveSearchIndex(index)}
+                                    onBlur={() => {
+                                      setTimeout(() => {
+                                        setActiveSearchIndex((current) => (current === index ? null : current));
+                                      }, 200);
+                                    }}
+                                    placeholder="Type to search item..."
+                                  />
+                                  {activeSearchIndex === index && filteredItems.length > 0 && (
+                                    <div className="item-search-list">
+                                      {filteredItems.map((item) => (
+                                        <button
+                                          key={item.itemId}
+                                          type="button"
+                                          className="item-search-option"
+                                          onMouseDown={() => handleSelectItem(index, item.itemId)}
+                                        >
+                                          <span className="item-search-id">{item.itemId}</span>
+                                          <span className="item-search-name">{item.name}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="cell-center">
+                                {selectedItem?.unit ?? "--"}
+                              </td>
+                              <td className="cell-center">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={line.quantity}
+                                  onChange={(e) => updateLine(index, { quantity: Number(e.target.value) })}
+                                />
+                              </td>
+                              <td className="cell-right">
+                                <input
+                                  type="number"
+                                  step="0.001"
+                                  value={line.unitPrice}
+                                  onChange={(e) => updateLine(index, { unitPrice: Number(e.target.value) })}
+                                />
+                              </td>
+                              <td className="cell-right">
+                                <input
+                                  type="number"
+                                  step="0.001"
+                                  min="0"
+                                  value={line.discountPerUnit}
+                                  onChange={(e) => updateLine(index, { discountPerUnit: Number(e.target.value) })}
+                                />
+                              </td>
+                              <td className="cell-right">
+                                {lineSubtotal.toFixed(3)}
+                              </td>
+                              <td className="cell-right">
+                                {profitMargin === null ? "—" : `${profitMargin.toFixed(1)}%`}
+                              </td>
+                              <td className="cell-center">
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-danger btn-sm"
+                                  onClick={() => removeLine(index)}
+                                  disabled={lines.length <= 1}
+                                >
+                                  <Icons.Trash className="btn-icon-sm" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 {lines.length > 0 && (
@@ -243,7 +316,7 @@ export default function BillsPage() {
                 )}
 
                 <div className="card-section">
-                  <button className="btn btn-primary btn-block" onClick={handleCreateBill} disabled={lines.length === 0}>
+                  <button className="btn btn-primary btn-block" onClick={handleCreateBill} disabled={!hasSelectedItems}>
                     <Icons.Check className="btn-icon" />
                     <span>Create Bill</span>
                   </button>

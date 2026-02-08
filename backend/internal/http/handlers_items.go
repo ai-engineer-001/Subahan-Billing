@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -41,6 +42,12 @@ func (s *Server) handleCreateItem(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid payload")
 		return
 	}
+	normalizedID, err := validateItemID(input.ItemID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	input.ItemID = normalizedID
 	if strings.TrimSpace(input.Name) == "" {
 		writeError(w, http.StatusBadRequest, "name is required")
 		return
@@ -48,6 +55,9 @@ func (s *Server) handleCreateItem(w http.ResponseWriter, r *http.Request) {
 	if input.SellingPrice <= 0 {
 		writeError(w, http.StatusBadRequest, "sellingPrice must be positive")
 		return
+	}
+	if strings.TrimSpace(input.Unit) == "" {
+		input.Unit = "pcs"
 	}
 
 	item, err := s.Store.CreateItem(r.Context(), input)
@@ -87,6 +97,16 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, item)
 }
 
+func (s *Server) handleGetItem(w http.ResponseWriter, r *http.Request) {
+	itemID := chi.URLParam(r, "itemId")
+	item, err := s.Store.GetItem(r.Context(), itemID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "item not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
 func (s *Server) handleDeleteItem(w http.ResponseWriter, r *http.Request) {
 	itemID := chi.URLParam(r, "itemId")
 	if err := s.Store.SoftDeleteItem(r.Context(), itemID); err != nil {
@@ -107,4 +127,20 @@ func (s *Server) handleRestoreItem(w http.ResponseWriter, r *http.Request) {
 
 	s.Cache.Invalidate("items:")
 	writeJSON(w, http.StatusOK, map[string]string{"status": "restored"})
+}
+
+func validateItemID(itemID string) (string, error) {
+	trimmed := strings.TrimSpace(itemID)
+	if trimmed == "" {
+		return "", errors.New("itemId is required")
+	}
+	if len(trimmed) > 100 {
+		return "", errors.New("itemId must be at most 100 characters")
+	}
+	for _, ch := range trimmed {
+		if (ch < '0' || ch > '9') && (ch < 'A' || ch > 'Z') && (ch < 'a' || ch > 'z') {
+			return "", errors.New("itemId must contain only letters and numbers")
+		}
+	}
+	return trimmed, nil
 }

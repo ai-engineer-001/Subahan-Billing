@@ -33,6 +33,8 @@ export default function ItemsPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [idCheckMessage, setIdCheckMessage] = useState<string | null>(null);
+  const [idCheckKind, setIdCheckKind] = useState<"success" | "error" | null>(null);
 
   const activeItems = items.filter((item) => !item.deletedAt);
   const deletedItems = items.filter((item) => item.deletedAt);
@@ -53,12 +55,29 @@ export default function ItemsPage() {
     loadItems();
   }, []);
 
+  const isValidItemId = (value: string) => /^[A-Za-z0-9]+$/.test(value);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setStatus(null);
 
+    const trimmedId = form.itemId.trim();
     const trimmedName = form.name.trim();
     const sellingValue = Number(form.sellingPrice);
+    if (!editingId) {
+      if (!trimmedId) {
+        setStatus("Item ID is required");
+        return;
+      }
+      if (trimmedId.length > 100) {
+        setStatus("Item ID must be at most 100 characters");
+        return;
+      }
+      if (!isValidItemId(trimmedId)) {
+        setStatus("Item ID must contain only letters and numbers");
+        return;
+      }
+    }
     if (!trimmedName) {
       setStatus("Item name is required");
       return;
@@ -92,6 +111,7 @@ export default function ItemsPage() {
         });
         setStatus("Item updated successfully!");
       } else {
+        payload.itemId = trimmedId;
         await apiFetch("/items", {
           method: "POST",
           body: JSON.stringify(payload)
@@ -102,6 +122,8 @@ export default function ItemsPage() {
       setForm({ ...emptyForm });
       setEditingId(null);
       setModalOpen(false);
+      setIdCheckMessage(null);
+      setIdCheckKind(null);
       await loadItems();
       
       setTimeout(() => setStatus(null), 3000);
@@ -121,12 +143,16 @@ export default function ItemsPage() {
       sellingPrice: item.sellingPrice.toString(),
       unit: item.unit || "pcs"
     });
+    setIdCheckMessage(null);
+    setIdCheckKind(null);
     setModalOpen(true);
   };
 
   const handleAddNew = () => {
     setEditingId(null);
     setForm({ ...emptyForm });
+    setIdCheckMessage(null);
+    setIdCheckKind(null);
     setModalOpen(true);
   };
 
@@ -165,7 +191,43 @@ export default function ItemsPage() {
   const handleCloseModal = () => {
     setEditingId(null);
     setForm({ ...emptyForm });
+    setIdCheckMessage(null);
+    setIdCheckKind(null);
     setModalOpen(false);
+  };
+
+  const handleVerifyId = async () => {
+    const trimmedId = form.itemId.trim();
+    if (!trimmedId) {
+      setIdCheckMessage("Enter an Item ID to verify");
+      setIdCheckKind("error");
+      return;
+    }
+    if (trimmedId.length > 100) {
+      setIdCheckMessage("Item ID must be at most 100 characters");
+      setIdCheckKind("error");
+      return;
+    }
+    if (!isValidItemId(trimmedId)) {
+      setIdCheckMessage("Item ID must contain only letters and numbers");
+      setIdCheckKind("error");
+      return;
+    }
+
+    try {
+      const item = await apiFetch<Item>(`/items/${encodeURIComponent(trimmedId)}`);
+      setIdCheckMessage(`Item exists with same id and ${item.name}.`);
+      setIdCheckKind("error");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.toLowerCase().includes("not found")) {
+        setIdCheckMessage("Item ID is available");
+        setIdCheckKind("success");
+      } else {
+        setIdCheckMessage(message || "Unable to verify Item ID");
+        setIdCheckKind("error");
+      }
+    }
   };
 
   return (
@@ -407,6 +469,39 @@ export default function ItemsPage() {
                       <div className="item-id-readonly">{form.itemId}</div>
                       <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
                         Item ID cannot be changed
+                      </p>
+                    </div>
+                  )}
+
+                  {!editingId && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        <Icons.FileText className="label-icon" />
+                        <span>Item ID</span>
+                      </label>
+                      <div className="input-with-action">
+                        <input
+                          value={form.itemId}
+                          maxLength={100}
+                          onChange={(e) => {
+                            setForm({ ...form, itemId: e.target.value });
+                            setIdCheckMessage(null);
+                            setIdCheckKind(null);
+                          }}
+                          placeholder="e.g., ABC123"
+                          required
+                        />
+                        <button type="button" className="btn btn-sm btn-secondary" onClick={handleVerifyId}>
+                          Verify
+                        </button>
+                      </div>
+                      {idCheckMessage && (
+                        <p className={`inline-notice ${idCheckKind === "success" ? "success" : "error"}`}>
+                          {idCheckMessage}
+                        </p>
+                      )}
+                      <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                        Up to 100 letters and numbers (no spaces)
                       </p>
                     </div>
                   )}

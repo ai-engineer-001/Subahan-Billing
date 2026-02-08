@@ -39,6 +39,7 @@ func (s *Server) Router() http.Handler {
 		api.Group(func(protected chi.Router) {
 			protected.Use(s.authMiddleware)
 			protected.Get("/items", s.handleListItems)
+			protected.Get("/items/{itemId}", s.handleGetItem)
 			protected.Post("/items", s.handleCreateItem)
 			protected.Put("/items/{itemId}", s.handleUpdateItem)
 			protected.Delete("/items/{itemId}", s.handleDeleteItem)

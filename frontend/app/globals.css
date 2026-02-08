@@ -590,6 +590,83 @@ body {
   gap: var(--space-3);
 }
 
+.bill-items-table th,
+.bill-items-table td {
+  border: 1px solid var(--border-color);
+  padding: var(--space-3);
+  vertical-align: top;
+}
+
+.bill-items-table td:first-child {
+  position: relative;
+  overflow: visible;
+}
+
+.bill-items-table thead th {
+  background: #f5f0de;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.bill-items-table input {
+  width: 100%;
+  min-width: 120px;
+}
+
+.item-search {
+  position: relative;
+}
+
+.item-search-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 320px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.item-search-option {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.item-search-option:hover {
+  background: var(--bg-secondary);
+}
+
+.item-search-id {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.item-search-name {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.bill-items-table .cell-center {
+  text-align: center;
+}
+
+.bill-items-table .cell-right {
+  text-align: right;
+}
+
 .line-item-stats {
   margin-top: var(--space-3);
   padding: var(--space-3);
@@ -970,6 +1047,7 @@ button:disabled, .btn:disabled {
 
 .table-container {
   overflow-x: auto;
+  overflow-y: visible;
 }
 
 .table {
@@ -1066,6 +1144,30 @@ button:disabled, .btn:disabled {
   color: var(--text-tertiary);
   padding: var(--space-4);
   text-align: center;
+}
+
+.input-with-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.input-with-action input {
+  flex: 1;
+}
+
+.inline-notice {
+  margin-top: var(--space-2);
+  font-size: 13px;
+  text-align: left;
+}
+
+.inline-notice.success {
+  color: var(--success);
+}
+
+.inline-notice.error {
+  color: var(--danger);
 }
 
 /* ==========================================
