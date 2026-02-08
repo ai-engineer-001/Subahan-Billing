@@ -21,29 +21,40 @@ const emptyForm = {
   sellingPrice: ""
 };
 
+type TabType = "active" | "trash";
+
 export default function ItemsPage() {
   const [items, setItems] = useState<Item[]>([]);
-  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>("active");
   const [form, setForm] = useState({ ...emptyForm });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const activeItems = items.filter((item) => !item.deletedAt);
+  const deletedItems = items.filter((item) => item.deletedAt);
 
   const loadItems = async () => {
+    setLoading(true);
     try {
-      const data = await apiFetch<Item[]>(`/items?includeDeleted=${includeDeleted}`);
+      const data = await apiFetch<Item[]>("/items?includeDeleted=true");
       setItems(data);
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Failed to load items");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     loadItems();
-  }, [includeDeleted]);
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setStatus(null);
+    setLoading(true);
+    
     try {
       const payload = {
         itemId: form.itemId.trim(),
@@ -57,19 +68,24 @@ export default function ItemsPage() {
           method: "PUT",
           body: JSON.stringify(payload)
         });
+        setStatus("Item updated successfully!");
       } else {
         await apiFetch("/items", {
           method: "POST",
           body: JSON.stringify(payload)
         });
+        setStatus("Item created successfully!");
       }
 
       setForm({ ...emptyForm });
       setEditingId(null);
       await loadItems();
-      setStatus(editingId ? "Item updated successfully" : "Item created successfully");
+      
+      setTimeout(() => setStatus(null), 3000);
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -81,173 +97,337 @@ export default function ItemsPage() {
       buyingPrice: item.buyingPrice?.toString() ?? "",
       sellingPrice: item.sellingPrice.toString()
     });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (itemId: string) => {
+    if (!confirm("Are you sure you want to delete this item? It can be restored within 24 hours.")) {
+      return;
+    }
+    
+    setLoading(true);
     try {
       await apiFetch(`/items/${itemId}`, { method: "DELETE" });
       await loadItems();
-      setStatus("Item deleted successfully");
+      setStatus("Item moved to trash");
+      setTimeout(() => setStatus(null), 3000);
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleRestore = async (itemId: string) => {
+    setLoading(true);
     try {
       await apiFetch(`/items/${itemId}/restore`, { method: "POST" });
       await loadItems();
-      setStatus("Item restored successfully");
+      setStatus("Item restored successfully!");
+      setTimeout(() => setStatus(null), 3000);
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Restore failed");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setForm({ ...emptyForm });
+    setStatus(null);
   };
 
   return (
     <ProtectedRoute>
       <DashboardLayout>
+        <div className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", marginBottom: "var(--space-6)" }}>
+          <div className="stat-card blue">
+            <div className="stat-icon">
+              <Icons.Package className="icon" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Active Items</div>
+              <div className="stat-value">{activeItems.length}</div>
+            </div>
+          </div>
+          <div className="stat-card orange">
+            <div className="stat-icon">
+              <Icons.Trash className="icon" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">In Trash</div>
+              <div className="stat-value">{deletedItems.length}</div>
+            </div>
+          </div>
+        </div>
+
+        {status && (
+          <div className={`alert ${status.includes("success") || status.includes("restored") || status.includes("moved") ? "success" : "alert-error"}`} style={{ marginBottom: "var(--space-6)" }}>
+            <Icons.Check className="alert-icon" />
+            <span>{status}</span>
+          </div>
+        )}
+
         <div className="grid grid-2">
           <div className="card">
             <div className="card-header">
               <div className="card-title-group">
                 <Icons.Package className="card-icon" />
-                <h2 className="card-title">{editingId ? "Edit" : "Add"} Item</h2>
+                <h2 className="card-title">{editingId ? "Edit Item" : "Add New Item"}</h2>
               </div>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label className="form-label">Item ID</label>
-                <input
-                  value={form.itemId}
-                  onChange={(e) => setForm({ ...form, itemId: e.target.value })}
-                  disabled={!!editingId}
-                  placeholder="e.g., ITEM001"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Name</label>
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Item name"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Buying Price (optional, KWD)</label>
-                <input
-                  type="number"
-                  step="0.001"
-                  value={form.buyingPrice}
-                  onChange={(e) => setForm({ ...form, buyingPrice: e.target.value })}
-                  placeholder="0.000"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Selling Price (KWD)</label>
-                <input
-                  type="number"
-                  step="0.001"
-                  value={form.sellingPrice}
-                  onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })}
-                  placeholder="0.000"
-                  required
-                />
-              </div>
-              <div className="btn-group">
-                <button type="submit" className="btn btn-primary">
-                  {editingId ? <Icons.Check className="btn-icon" /> : <Icons.Plus className="btn-icon" />}
-                  <span>{editingId ? "Update" : "Create"} Item</span>
+              {editingId && (
+                <button className="btn btn-sm btn-ghost" onClick={handleCancelEdit}>
+                  <Icons.X className="btn-icon-sm" />
                 </button>
-                {editingId && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    onClick={() => {
-                      setEditingId(null);
-                      setForm({ ...emptyForm });
-                    }}
-                  >
-                    <Icons.X className="btn-icon" />
-                    <span>Cancel</span>
-                  </button>
-                )}
-              </div>
-              {status && (
-                <div className={status.includes("success") ? "alert success" : "alert error"}>
-                  {status}
-                </div>
               )}
-            </form>
+            </div>
+            
+            <div style={{ padding: "var(--space-6)" }}>
+              <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                  <label className="form-label">
+                    <Icons.FileText className="label-icon" />
+                    <span>Item ID</span>
+                  </label>
+                  <input
+                    value={form.itemId}
+                    onChange={(e) => setForm({ ...form, itemId: e.target.value })}
+                    disabled={!!editingId}
+                    placeholder="e.g., ITEM001"
+                    required
+                  />
+                  {editingId && (
+                    <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                      Item ID cannot be changed
+                    </p>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    <Icons.Package className="label-icon" />
+                    <span>Item Name</span>
+                  </label>
+                  <input
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="e.g., Coca Cola 330ml"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    <Icons.DollarSign className="label-icon" />
+                    <span>Buying Price (Optional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    value={form.buyingPrice}
+                    onChange={(e) => setForm({ ...form, buyingPrice: e.target.value })}
+                    placeholder="0.000 KWD"
+                  />
+                  <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                    Leave empty if not applicable
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    <Icons.TrendingUp className="label-icon" />
+                    <span>Selling Price (Required)</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    value={form.sellingPrice}
+                    onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })}
+                    placeholder="0.000 KWD"
+                    required
+                  />
+                </div>
+
+                <div className="btn-group" style={{ marginTop: "var(--space-6)" }}>
+                  <button type="submit" className="btn btn-primary" disabled={loading} style={{ flex: 1 }}>
+                    {editingId ? <Icons.Check className="btn-icon" /> : <Icons.Plus className="btn-icon" />}
+                    <span>{editingId ? "Update" : "Create"} Item</span>
+                  </button>
+                  {editingId && (
+                    <button type="button" className="btn btn-ghost" onClick={handleCancelEdit}>
+                      <Icons.X className="btn-icon" />
+                      <span>Cancel</span>
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
           </div>
 
           <div className="card">
-            <div className="card-header">
-              <div className="card-title-group">
-                <Icons.FileText className="card-icon" />
-                <h2 className="card-title">Items List</h2>
-              </div>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={includeDeleted}
-                  onChange={(e) => setIncludeDeleted(e.target.checked)}
-                />
-                <span>Show deleted</span>
-              </label>
+            <div className="tabs-container">
+              <button
+                className={`tab ${activeTab === "active" ? "active" : ""}`}
+                onClick={() => setActiveTab("active")}
+              >
+                <Icons.Package className="tab-icon" />
+                <span>Active Items</span>
+                <span className="tab-badge">{activeItems.length}</span>
+              </button>
+              <button
+                className={`tab ${activeTab === "trash" ? "active" : ""}`}
+                onClick={() => setActiveTab("trash")}
+              >
+                <Icons.Trash className="tab-icon" />
+                <span>Trash Bin</span>
+                {deletedItems.length > 0 && (
+                  <span className="tab-badge danger">{deletedItems.length}</span>
+                )}
+              </button>
             </div>
-            <div className="table-container">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Item ID</th>
-                    <th>Name</th>
-                    <th>Selling (KWD)</th>
-                    <th>Status</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.itemId}>
-                      <td>{item.itemId}</td>
-                      <td>{item.name}</td>
-                      <td>{item.sellingPrice.toFixed(3)}</td>
-                      <td>
-                        {item.deletedAt ? (
-                          <span className="badge danger">Deleted</span>
-                        ) : (
-                          <span className="badge success">Active</span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="btn-group">
-                          {!item.deletedAt ? (
-                            <>
-                              <button className="btn btn-sm btn-ghost" onClick={() => handleEdit(item)}>
-                                <Icons.Edit className="btn-icon-sm" />
-                                <span>Edit</span>
-                              </button>
-                              <button className="btn btn-sm btn-danger" onClick={() => handleDelete(item.itemId)}>
-                                <Icons.Trash className="btn-icon-sm" />
-                                <span>Delete</span>
-                              </button>
-                            </>
-                          ) : (
-                            <button className="btn btn-sm btn-success" onClick={() => handleRestore(item.itemId)}>
-                              <Icons.RotateCcw className="btn-icon-sm" />
-                              <span>Restore</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="notice">Deleted items can be restored within 24 hours before permanent removal.</p>
+
+            {activeTab === "active" && (
+              <>
+                {loading ? (
+                  <div className="empty-state">
+                    <div className="spinner-large"></div>
+                    <p>Loading items...</p>
+                  </div>
+                ) : activeItems.length === 0 ? (
+                  <div className="empty-state">
+                    <Icons.Package className="empty-icon" />
+                    <h3>No items yet</h3>
+                    <p>Create your first item using the form on the left</p>
+                  </div>
+                ) : (
+                  <div className="table-container">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Item ID</th>
+                          <th>Name</th>
+                          <th>Buying</th>
+                          <th>Selling</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activeItems.map((item) => (
+                          <tr key={item.itemId}>
+                            <td>
+                              <span className="item-id">{item.itemId}</span>
+                            </td>
+                            <td>
+                              <strong>{item.name}</strong>
+                            </td>
+                            <td>
+                              {item.buyingPrice ? (
+                                <span className="price">{item.buyingPrice.toFixed(3)} KWD</span>
+                              ) : (
+                                <span className="text-muted">—</span>
+                              )}
+                            </td>
+                            <td>
+                              <span className="price primary">{item.sellingPrice.toFixed(3)} KWD</span>
+                            </td>
+                            <td>
+                              <div className="btn-group">
+                                <button 
+                                  className="btn btn-sm btn-ghost" 
+                                  onClick={() => handleEdit(item)}
+                                  disabled={loading}
+                                >
+                                  <Icons.Edit className="btn-icon-sm" />
+                                  <span>Edit</span>
+                                </button>
+                                <button 
+                                  className="btn btn-sm btn-danger" 
+                                  onClick={() => handleDelete(item.itemId)}
+                                  disabled={loading}
+                                >
+                                  <Icons.Trash className="btn-icon-sm" />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === "trash" && (
+              <>
+                {loading ? (
+                  <div className="empty-state">
+                    <div className="spinner-large"></div>
+                    <p>Loading trash...</p>
+                  </div>
+                ) : deletedItems.length === 0 ? (
+                  <div className="empty-state">
+                    <Icons.Trash className="empty-icon" />
+                    <h3>Trash is empty</h3>
+                    <p>Deleted items will appear here for 24 hours before permanent removal</p>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ padding: "var(--space-4) var(--space-6)", background: "var(--warning-bg)", borderBottom: "1px solid var(--border-color)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                        <Icons.AlertCircle style={{ width: "20px", height: "20px", color: "var(--warning)" }} />
+                        <p style={{ fontSize: "13px", color: "var(--warning)", margin: 0 }}>
+                          Items in trash will be permanently deleted after 24 hours
+                        </p>
+                      </div>
+                    </div>
+                    <div className="table-container">
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>Item ID</th>
+                            <th>Name</th>
+                            <th>Selling Price</th>
+                            <th>Deleted At</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {deletedItems.map((item) => (
+                            <tr key={item.itemId} style={{ opacity: 0.7 }}>
+                              <td>
+                                <span className="item-id">{item.itemId}</span>
+                              </td>
+                              <td>
+                                <strong>{item.name}</strong>
+                              </td>
+                              <td>
+                                <span className="price">{item.sellingPrice.toFixed(3)} KWD</span>
+                              </td>
+                              <td>
+                                {item.deletedAt && new Date(item.deletedAt).toLocaleString()}
+                              </td>
+                              <td>
+                                <button 
+                                  className="btn btn-sm btn-success" 
+                                  onClick={() => handleRestore(item.itemId)}
+                                  disabled={loading}
+                                >
+                                  <Icons.RotateCcw className="btn-icon-sm" />
+                                  <span>Restore</span>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
           </div>
         </div>
       </DashboardLayout>
