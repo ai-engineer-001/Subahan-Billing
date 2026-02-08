@@ -22,11 +22,15 @@ npm run dev
 
 ## Hosting notes
 ### Vercel (frontend)
+- Connect your GitHub repo and select the `frontend` directory as the root.
 - Set `NEXT_PUBLIC_API_BASE_URL` to your Render API URL + `/api`.
 
 ### Render (backend)
-- Set `DATABASE_URL` to your Neon connection string.
-- Set `JWT_SECRET` to a strong random value.
-- Set `ADMIN_USERNAME` and `ADMIN_PASSWORD` for the admin login.
-- Set `CORS_ORIGIN` to your Vercel frontend URL.
-- Set `PORT` if Render does not provide it automatically.
+- Use the `render.yaml` file at the repository root (auto-detected) OR configure manually.
+- Set these environment variables:
+  - `DATABASE_URL` = your Neon connection string
+  - `JWT_SECRET` = strong random value
+  - `ADMIN_USERNAME` = admin username
+  - `ADMIN_PASSWORD` = admin password
+  - `CORS_ORIGIN` = your Vercel frontend URL
+- `PORT` is set to 8080 by default.

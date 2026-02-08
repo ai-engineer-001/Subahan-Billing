@@ -87,7 +87,7 @@ func jsonEncoder(w http.ResponseWriter) *json.Encoder {
 func issueToken(secret string, username string) (string, error) {
 	claims := jwt.MapClaims{
 		"sub": username,
-		"exp": time.Now().Add(24 * time.Hour).Unix(),
+		"exp": time.Now().Add(30 * 24 * time.Hour).Unix(),
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 }

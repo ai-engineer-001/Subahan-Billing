@@ -132,15 +132,17 @@ export default function ItemsPage() {
               onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })}
             />
           </div>
-          <button type="submit">{editingId ? "Update" : "Create"} item</button>
-          {editingId && (
-            <button type="button" className="ghost" onClick={() => {
-              setEditingId(null);
-              setForm({ ...emptyForm });
-            }}>
-              Cancel
-            </button>
-          )}
+          <div className="actions">
+            <button type="submit">{editingId ? "Update" : "Create"} item</button>
+            {editingId && (
+              <button type="button" className="ghost" onClick={() => {
+                setEditingId(null);
+                setForm({ ...emptyForm });
+              }}>
+                Cancel
+              </button>
+            )}
+          </div>
           {status && <p className="notice">{status}</p>}
         </form>
       </section>
@@ -156,37 +158,39 @@ export default function ItemsPage() {
             Show deleted items
           </label>
         </div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Item ID</th>
-              <th>Name</th>
-              <th>Selling (KWD)</th>
-              <th>Status</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.itemId}>
-                <td>{item.itemId}</td>
-                <td>{item.name}</td>
-                <td>{item.sellingPrice.toFixed(3)}</td>
-                <td>{item.deletedAt ? "Deleted" : "Active"}</td>
-                <td>
-                  {!item.deletedAt ? (
-                    <>
-                      <button className="ghost" onClick={() => handleEdit(item)}>Edit</button>{" "}
-                      <button className="danger" onClick={() => handleDelete(item.itemId)}>Delete</button>
-                    </>
-                  ) : (
-                    <button className="secondary" onClick={() => handleRestore(item.itemId)}>Restore</button>
-                  )}
-                </td>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Item ID</th>
+                <th>Name</th>
+                <th>Selling (KWD)</th>
+                <th>Status</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.itemId}>
+                  <td>{item.itemId}</td>
+                  <td>{item.name}</td>
+                  <td>{item.sellingPrice.toFixed(3)}</td>
+                  <td>{item.deletedAt ? "Deleted" : "Active"}</td>
+                  <td>
+                    {!item.deletedAt ? (
+                      <>
+                        <button className="ghost" onClick={() => handleEdit(item)}>Edit</button>{" "}
+                        <button className="danger" onClick={() => handleDelete(item.itemId)}>Delete</button>
+                      </>
+                    ) : (
+                      <button className="secondary" onClick={() => handleRestore(item.itemId)}>Restore</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <p className="notice">Deleted items can be restored within 24 hours before permanent removal.</p>
       </section>
     </div>

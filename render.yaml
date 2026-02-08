@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: subahan-billing-backend
+    env: go
+    region: singapore
+    buildCommand: cd backend && go build -tags netgo -ldflags '-s -w' -o bin/server ./cmd/server
+    startCommand: cd backend && ./bin/server
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: PORT
+        value: 8080

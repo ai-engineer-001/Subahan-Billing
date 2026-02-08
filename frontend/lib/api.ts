@@ -3,16 +3,71 @@ type ApiError = {
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api";
+const AUTH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const AUTH_STORAGE_KEY = "auth";
+
+type AuthState = {
+  token: string;
+  expiresAt: number;
+};
+
+function readAuthState(): AuthState | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) {
+    const legacy = window.localStorage.getItem("token");
+    if (legacy) {
+      const fallback: AuthState = {
+        token: legacy,
+        expiresAt: Date.now() + AUTH_TTL_MS
+      };
+      window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(fallback));
+      window.localStorage.removeItem("token");
+      return fallback;
+    }
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(raw) as AuthState;
+    if (!parsed.token || !parsed.expiresAt) {
+      return null;
+    }
+    if (Date.now() > parsed.expiresAt) {
+      window.localStorage.removeItem(AUTH_STORAGE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    return null;
+  }
+}
+
+export function getAuthToken(): string | null {
+  const auth = readAuthState();
+  return auth?.token ?? null;
+}
+
+export function getAuthExpiry(): number | null {
+  const auth = readAuthState();
+  return auth?.expiresAt ?? null;
+}
+
+export function clearAuth() {
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  }
+}
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers || {});
   headers.set("Content-Type", "application/json");
 
-  if (typeof window !== "undefined") {
-    const token = window.localStorage.getItem("token");
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
+  const token = getAuthToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(`${API_BASE}${path}`, {
@@ -34,7 +89,11 @@ export async function login(username: string, password: string) {
     body: JSON.stringify({ username, password })
   });
   if (typeof window !== "undefined") {
-    window.localStorage.setItem("token", result.token);
+    const authState: AuthState = {
+      token: result.token,
+      expiresAt: Date.now() + AUTH_TTL_MS
+    };
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authState));
   }
   return result.token;
 }

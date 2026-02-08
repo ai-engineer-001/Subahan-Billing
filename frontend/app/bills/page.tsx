@@ -135,37 +135,41 @@ export default function BillsPage() {
             </div>
           ))}
         </div>
-        <button className="secondary" onClick={addLine}>Add line item</button>
-        <button onClick={handleCreateBill} disabled={lines.length === 0}>
-          Create bill
-        </button>
+        <div className="actions">
+          <button className="secondary" onClick={addLine}>Add line item</button>
+          <button onClick={handleCreateBill} disabled={lines.length === 0}>
+            Create bill
+          </button>
+        </div>
         {status && <p className="notice">{status}</p>}
       </section>
 
       <section className="card">
         <h2 className="section-title">Recent Bills</h2>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Customer</th>
-              <th>Total (KWD)</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {bills.map((bill) => (
-              <tr key={bill.id}>
-                <td>{bill.id.slice(0, 8)}...</td>
-                <td>{bill.customer || "Walk-in"}</td>
-                <td>{bill.totalAmount.toFixed(3)}</td>
-                <td>
-                  <a className="badge" href={`/print/${bill.id}`}>Print</a>
-                </td>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Total (KWD)</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {bills.map((bill) => (
+                <tr key={bill.id}>
+                  <td>{bill.id.slice(0, 8)}...</td>
+                  <td>{bill.customer || "Walk-in"}</td>
+                  <td>{bill.totalAmount.toFixed(3)}</td>
+                  <td>
+                    <a className="badge" href={`/print/${bill.id}`}>Print</a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );
