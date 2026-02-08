@@ -266,10 +266,12 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
 
         .total-section {
           margin-top: 30px;
+          display: flex;
+          justify-content: flex-end;
         }
 
         .total-box {
-          width: 100%;
+          min-width: 350px;
           background: #f5f0de;
           border: 2px solid #8b7355;
           border-radius: 0;

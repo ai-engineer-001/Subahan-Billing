@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -71,14 +72,22 @@ func (s *Store) CreateItem(ctx context.Context, input ItemCreate) (Item, error) 
 		return item, err
 	}
 
-	nextID, err := nextItemID(ctx, tx)
-	if err != nil {
-		return item, err
+	itemID := strings.TrimSpace(input.ItemID)
+	if itemID == "" {
+		nextID, err := nextItemID(ctx, tx)
+		if err != nil {
+			return item, err
+		}
+		itemID = nextID
 	}
 
+	unit := strings.TrimSpace(input.Unit)
+	if unit == "" {
+		unit = "pcs"
+	}
 	row := tx.QueryRow(ctx,
 		"INSERT INTO items (item_id, name, buying_price, selling_price, unit) VALUES ($1, $2, $3, $4, $5) RETURNING item_id, name, buying_price, selling_price, unit, created_at, updated_at, deleted_at",
-		nextID, input.Name, input.BuyingPrice, input.SellingPrice, input.Unit,
+		itemID, input.Name, input.BuyingPrice, input.SellingPrice, unit,
 	)
 	if err := row.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 		return item, err
@@ -255,7 +264,15 @@ func (s *Store) GetBill(ctx context.Context, billID string) (Bill, error) {
 		return bill, ErrNotFound
 	}
 
-	rows, err := s.db.Query(ctx, "SELECT id, bill_id, item_id, item_name, quantity, unit_price, base_selling_price FROM bill_items WHERE bill_id=$1 ORDER BY item_name", billID)
+	rows, err := s.db.Query(ctx, `
+		SELECT bi.id, bi.bill_id, bi.item_id, bi.item_name, 
+		       COALESCE(i.unit, 'pcs') as unit,
+		       bi.quantity, bi.unit_price, bi.base_selling_price 
+		FROM bill_items bi
+		LEFT JOIN items i ON bi.item_id = i.item_id
+		WHERE bi.bill_id=$1 
+		ORDER BY bi.item_name
+	`, billID)
 	if err != nil {
 		return bill, err
 	}
@@ -264,7 +281,7 @@ func (s *Store) GetBill(ctx context.Context, billID string) (Bill, error) {
 	items := []BillItem{}
 	for rows.Next() {
 		var item BillItem
-		if err := rows.Scan(&item.ID, &item.BillID, &item.ItemID, &item.ItemName, &item.Quantity, &item.UnitPrice, &item.BaseSellingPrice); err != nil {
+		if err := rows.Scan(&item.ID, &item.BillID, &item.ItemID, &item.ItemName, &item.Unit, &item.Quantity, &item.UnitPrice, &item.BaseSellingPrice); err != nil {
 			return bill, err
 		}
 		items = append(items, item)

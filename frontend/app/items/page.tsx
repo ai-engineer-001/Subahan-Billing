@@ -33,6 +33,8 @@ export default function ItemsPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [idCheckMessage, setIdCheckMessage] = useState<string | null>(null);
+  const [idCheckKind, setIdCheckKind] = useState<"success" | "error" | null>(null);
 
   const activeItems = items.filter((item) => !item.deletedAt);
   const deletedItems = items.filter((item) => item.deletedAt);
@@ -53,12 +55,29 @@ export default function ItemsPage() {
     loadItems();
   }, []);
 
+  const isValidItemId = (value: string) => /^[A-Za-z0-9]+$/.test(value);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setStatus(null);
 
+    const trimmedId = form.itemId.trim();
     const trimmedName = form.name.trim();
     const sellingValue = Number(form.sellingPrice);
+    if (!editingId) {
+      if (!trimmedId) {
+        setStatus("Item ID is required");
+        return;
+      }
+      if (trimmedId.length > 100) {
+        setStatus("Item ID must be at most 100 characters");
+        return;
+      }
+      if (!isValidItemId(trimmedId)) {
+        setStatus("Item ID must contain only letters and numbers");
+        return;
+      }
+    }
     if (!trimmedName) {
       setStatus("Item name is required");
       return;
@@ -92,6 +111,7 @@ export default function ItemsPage() {
         });
         setStatus("Item updated successfully!");
       } else {
+        payload.itemId = trimmedId;
         await apiFetch("/items", {
           method: "POST",
           body: JSON.stringify(payload)
@@ -101,9 +121,9 @@ export default function ItemsPage() {
 
       setForm({ ...emptyForm });
       setEditingId(null);
+      setModalOpen(false);
       setIdCheckMessage(null);
       setIdCheckKind(null);
-      setModalOpen(false);
       await loadItems();
       
       setTimeout(() => setStatus(null), 3000);
@@ -196,14 +216,8 @@ export default function ItemsPage() {
 
     try {
       const item = await apiFetch<Item>(`/items/${encodeURIComponent(trimmedId)}`);
-      // If editing and the ID is the same as current item, it's valid
-      if (editingId && item.itemId === editingId) {
-        setIdCheckMessage("Item ID is valid");
-        setIdCheckKind("success");
-      } else {
-        setIdCheckMessage(`Item exists with same id and ${item.name}.`);
-        setIdCheckKind("error");
-      }
+      setIdCheckMessage(`Item exists with same id and ${item.name}.`);
+      setIdCheckKind("error");
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
       if (message.toLowerCase().includes("not found")) {
@@ -446,44 +460,51 @@ export default function ItemsPage() {
 
               <div className="modal-body">
                 <form onSubmit={handleSubmit}>
-                  <div className="form-group">
-                    <label className="form-label">
-                      <Icons.FileText className="label-icon" />
-                      <span>Item ID</span>
-                    </label>
-                    <div className="input-with-action">
-                      <input
-                        value={form.itemId}
-                        maxLength={100}
-                        onChange={(e) => {
-                          setForm({ ...form, itemId: e.target.value });
-                          setIdCheckMessage(null);
-                          setIdCheckKind(null);
-                        }}
-                        placeholder="e.g., ABC123"
-                        required
-                        disabled={editingId ? false : false}
-                      />
-                      {!editingId && (
+                  {editingId && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        <Icons.FileText className="label-icon" />
+                        <span>Item ID</span>
+                      </label>
+                      <div className="item-id-readonly">{form.itemId}</div>
+                      <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                        Item ID cannot be changed
+                      </p>
+                    </div>
+                  )}
+
+                  {!editingId && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        <Icons.FileText className="label-icon" />
+                        <span>Item ID</span>
+                      </label>
+                      <div className="input-with-action">
+                        <input
+                          value={form.itemId}
+                          maxLength={100}
+                          onChange={(e) => {
+                            setForm({ ...form, itemId: e.target.value });
+                            setIdCheckMessage(null);
+                            setIdCheckKind(null);
+                          }}
+                          placeholder="e.g., ABC123"
+                          required
+                        />
                         <button type="button" className="btn btn-sm btn-secondary" onClick={handleVerifyId}>
                           Verify
                         </button>
+                      </div>
+                      {idCheckMessage && (
+                        <p className={`inline-notice ${idCheckKind === "success" ? "success" : "error"}`}>
+                          {idCheckMessage}
+                        </p>
                       )}
-                      {editingId && (
-                        <button type="button" className="btn btn-sm btn-secondary" onClick={handleVerifyId}>
-                          Check
-                        </button>
-                      )}
-                    </div>
-                    {idCheckMessage && (
-                      <p className={`inline-notice ${idCheckKind === "success" ? "success" : "error"}`}>
-                        {idCheckMessage}
+                      <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                        Up to 100 letters and numbers (no spaces)
                       </p>
-                    )}
-                    <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
-                      {editingId ? "Update the Item ID if needed" : "Up to 100 letters and numbers (no spaces)"}
-                    </p>
-                  </div>
+                    </div>
+                  )}
 
                   <div className="form-group">
                     <label className="form-label">
@@ -507,9 +528,17 @@ export default function ItemsPage() {
                       value={form.unit}
                       onChange={(e) => setForm({ ...form, unit: e.target.value })}
                     >
-                      <option value="roll">Roll (roll)</option>
+                      <option value="pcs">Pieces (pcs)</option>
+                      <option value="box">Box</option>
+                      <option value="carton">Carton</option>
+                      <option value="kg">Kilogram (kg)</option>
+                      <option value="g">Gram (g)</option>
+                      <option value="L">Liter (L)</option>
+                      <option value="mL">Milliliter (mL)</option>
                       <option value="m">Meter (m)</option>
-                      <option value="pcs">Piece (pcs)</option>
+                      <option value="pack">Pack</option>
+                      <option value="set">Set</option>
+                      <option value="dozen">Dozen</option>
                     </select>
                     <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
                       Select the unit of measurement for this item

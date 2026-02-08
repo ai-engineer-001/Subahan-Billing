@@ -55,24 +55,6 @@ export default function BillsPage() {
     loadBills();
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      // Check if click is outside search dropdowns
-      if (!target.closest('.item-search')) {
-        setActiveSearchIndex(null);
-      }
-    };
-
-    if (activeSearchIndex !== null) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [activeSearchIndex]);
-
   const addLine = () => {
     setLines([...lines, { itemId: "", quantity: 1, unitPrice: 0, discountPerUnit: 0, searchTerm: "" }]);
   };
@@ -205,14 +187,13 @@ export default function BillsPage() {
                     <table className="table bill-items-table">
                       <thead>
                         <tr>
-                          <th style={{ width: '120px' }}>Item No</th>
-                          <th>Item Name</th>
+                          <th>Item</th>
                           <th className="cell-center">Unit</th>
                           <th className="cell-center">Qty</th>
                           <th className="cell-right">Unit Price (KWD)</th>
                           <th className="cell-right">Discount/Unit</th>
                           <th className="cell-right">Subtotal</th>
-                          <th className="cell-right">Profit (KWD)</th>
+                          <th className="cell-right">Profit %</th>
                           <th></th>
                         </tr>
                       </thead>
@@ -221,9 +202,13 @@ export default function BillsPage() {
                           const selectedItem = items.find((item) => item.itemId === line.itemId);
                           const effectiveUnitPrice = getEffectiveUnitPrice(line);
                           const lineSubtotal = getLineSubtotal(line);
-                          const lineProfit = selectedItem?.buyingPrice && effectiveUnitPrice > 0
-                            ? (effectiveUnitPrice - selectedItem.buyingPrice) * line.quantity
+                          const profitMargin = selectedItem?.buyingPrice && effectiveUnitPrice > 0
+                            ? ((effectiveUnitPrice - selectedItem.buyingPrice) / effectiveUnitPrice) * 100
                             : null;
+                          
+                          const displayValue = line.itemId && selectedItem
+                            ? `${selectedItem.itemId} - ${selectedItem.name}`
+                            : line.searchTerm;
                           
                           const filteredItems = !line.itemId && line.searchTerm
                             ? items
@@ -238,20 +223,18 @@ export default function BillsPage() {
                             : [];
 
                           return (
-                            <tr key={index} className={activeSearchIndex === index ? "active-search" : ""}>
-                              <td>
-                                {selectedItem ? (
-                                  <span className="item-id">{selectedItem.itemId}</span>
-                                ) : (
-                                  <span className="text-muted">—</span>
-                                )}
-                              </td>
+                            <tr key={index}>
                               <td>
                                 <div className="item-search">
                                   <input
-                                    value={selectedItem ? selectedItem.name : line.searchTerm}
+                                    value={displayValue}
                                     onChange={(e) => handleSearchChange(index, e.target.value)}
                                     onFocus={() => setActiveSearchIndex(index)}
+                                    onBlur={() => {
+                                      setTimeout(() => {
+                                        setActiveSearchIndex((current) => (current === index ? null : current));
+                                      }, 200);
+                                    }}
                                     placeholder="Type to search item..."
                                   />
                                   {activeSearchIndex === index && filteredItems.length > 0 && (
@@ -261,7 +244,7 @@ export default function BillsPage() {
                                           key={item.itemId}
                                           type="button"
                                           className="item-search-option"
-                                          onClick={() => handleSelectItem(index, item.itemId)}
+                                          onMouseDown={() => handleSelectItem(index, item.itemId)}
                                         >
                                           <span className="item-search-id">{item.itemId}</span>
                                           <span className="item-search-name">{item.name}</span>
@@ -303,7 +286,7 @@ export default function BillsPage() {
                                 {lineSubtotal.toFixed(3)}
                               </td>
                               <td className="cell-right">
-                                {lineProfit === null ? "—" : lineProfit.toFixed(3)}
+                                {profitMargin === null ? "—" : `${profitMargin.toFixed(1)}%`}
                               </td>
                               <td className="cell-center">
                                 <button
