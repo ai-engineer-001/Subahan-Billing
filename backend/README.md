@@ -17,7 +17,7 @@ go run ./cmd/server
 
 ### Option 2: Manual configuration
 If configuring manually in Render:
-- **Build Command**: `cd backend && go build -tags netgo -ldflags '-s -w' -o bin/server ./cmd/server`
+- **Build Command**: `cd backend && go mod download && go build -tags netgo -ldflags '-s -w' -o bin/server ./cmd/server`
 - **Start Command**: `cd backend && ./bin/server`
 - **Root Directory**: Leave at repository root (Render will cd into backend)
 
