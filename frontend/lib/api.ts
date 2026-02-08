@@ -6,6 +6,11 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/
 const AUTH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const AUTH_STORAGE_KEY = "auth";
 
+// Debug: log the API base URL
+if (typeof window !== "undefined") {
+  console.log("🔗 API Base URL:", API_BASE);
+}
+
 type AuthState = {
   token: string;
   expiresAt: number;
