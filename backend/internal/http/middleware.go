@@ -54,7 +54,24 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 func corsMiddleware(origin string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
+			// Support multiple origins (comma-separated)
+			requestOrigin := r.Header.Get("Origin")
+			allowedOrigin := origin
+			
+			if origin == "*" {
+				allowedOrigin = "*"
+			} else if requestOrigin != "" && strings.Contains(origin, ",") {
+				// Check if request origin is in the allowed list
+				origins := strings.Split(origin, ",")
+				for _, o := range origins {
+					if strings.TrimSpace(o) == requestOrigin {
+						allowedOrigin = requestOrigin
+						break
+					}
+				}
+			}
+			
+			w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization,Content-Type")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
