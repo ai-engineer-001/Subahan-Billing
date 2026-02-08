@@ -215,3 +215,14 @@ func (s *Store) GetBill(ctx context.Context, billID string) (Bill, error) {
 	bill.Items = items
 	return bill, rows.Err()
 }
+
+func (s *Store) DeleteBill(ctx context.Context, billID string) error {
+	cmd, err := s.db.Exec(ctx, "DELETE FROM bills WHERE id=$1", billID)
+	if err != nil {
+		return err
+	}
+	if cmd.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

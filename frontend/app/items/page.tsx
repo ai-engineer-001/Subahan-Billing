@@ -30,6 +30,7 @@ export default function ItemsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const activeItems = items.filter((item) => !item.deletedAt);
   const deletedItems = items.filter((item) => item.deletedAt);
@@ -79,6 +80,7 @@ export default function ItemsPage() {
 
       setForm({ ...emptyForm });
       setEditingId(null);
+      setModalOpen(false);
       await loadItems();
       
       setTimeout(() => setStatus(null), 3000);
@@ -97,7 +99,13 @@ export default function ItemsPage() {
       buyingPrice: item.buyingPrice?.toString() ?? "",
       sellingPrice: item.sellingPrice.toString()
     });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setModalOpen(true);
+  };
+
+  const handleAddNew = () => {
+    setEditingId(null);
+    setForm({ ...emptyForm });
+    setModalOpen(true);
   };
 
   const handleDelete = async (itemId: string) => {
@@ -132,10 +140,10 @@ export default function ItemsPage() {
     }
   };
 
-  const handleCancelEdit = () => {
+  const handleCloseModal = () => {
     setEditingId(null);
     setForm({ ...emptyForm });
-    setStatus(null);
+    setModalOpen(false);
   };
 
   return (
@@ -169,104 +177,19 @@ export default function ItemsPage() {
           </div>
         )}
 
-        <div className="grid grid-2">
-          <div className="card">
-            <div className="card-header">
-              <div className="card-title-group">
-                <Icons.Package className="card-icon" />
-                <h2 className="card-title">{editingId ? "Edit Item" : "Add New Item"}</h2>
-              </div>
-              {editingId && (
-                <button className="btn btn-sm btn-ghost" onClick={handleCancelEdit}>
-                  <Icons.X className="btn-icon-sm" />
-                </button>
-              )}
+        <div className="card">
+          <div className="card-header">
+            <div className="card-title-group">
+              <Icons.Package className="card-icon" />
+              <h2 className="card-title">Items</h2>
             </div>
-            
-            <div style={{ padding: "var(--space-6)" }}>
-              <form onSubmit={handleSubmit}>
-                <div className="form-group">
-                  <label className="form-label">
-                    <Icons.FileText className="label-icon" />
-                    <span>Item ID</span>
-                  </label>
-                  <input
-                    value={form.itemId}
-                    onChange={(e) => setForm({ ...form, itemId: e.target.value })}
-                    disabled={!!editingId}
-                    placeholder="e.g., ITEM001"
-                    required
-                  />
-                  {editingId && (
-                    <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
-                      Item ID cannot be changed
-                    </p>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    <Icons.Package className="label-icon" />
-                    <span>Item Name</span>
-                  </label>
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="e.g., Coca Cola 330ml"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    <Icons.DollarSign className="label-icon" />
-                    <span>Buying Price (Optional)</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    value={form.buyingPrice}
-                    onChange={(e) => setForm({ ...form, buyingPrice: e.target.value })}
-                    placeholder="0.000 KWD"
-                  />
-                  <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
-                    Leave empty if not applicable
-                  </p>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    <Icons.TrendingUp className="label-icon" />
-                    <span>Selling Price (Required)</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    value={form.sellingPrice}
-                    onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })}
-                    placeholder="0.000 KWD"
-                    required
-                  />
-                </div>
-
-                <div className="btn-group" style={{ marginTop: "var(--space-6)" }}>
-                  <button type="submit" className="btn btn-primary" disabled={loading} style={{ flex: 1 }}>
-                    {editingId ? <Icons.Check className="btn-icon" /> : <Icons.Plus className="btn-icon" />}
-                    <span>{editingId ? "Update" : "Create"} Item</span>
-                  </button>
-                  {editingId && (
-                    <button type="button" className="btn btn-ghost" onClick={handleCancelEdit}>
-                      <Icons.X className="btn-icon" />
-                      <span>Cancel</span>
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
+            <button className="btn btn-sm btn-primary" onClick={handleAddNew}>
+              <Icons.Plus className="btn-icon-sm" />
+              <span>Add Item</span>
+            </button>
           </div>
 
-          <div className="card">
-            <div className="tabs-container">
+          <div className="tabs-container">
               <button
                 className={`tab ${activeTab === "active" ? "active" : ""}`}
                 onClick={() => setActiveTab("active")}
@@ -298,7 +221,7 @@ export default function ItemsPage() {
                   <div className="empty-state">
                     <Icons.Package className="empty-icon" />
                     <h3>No items yet</h3>
-                    <p>Create your first item using the form on the left</p>
+                    <p>Create your first item using the Add Item button</p>
                   </div>
                 ) : (
                   <div className="table-container">
@@ -429,7 +352,101 @@ export default function ItemsPage() {
               </>
             )}
           </div>
-        </div>
+
+        {modalOpen && (
+          <div className="modal-backdrop" onClick={handleCloseModal}>
+            <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+              <div className="modal-header">
+                <div className="card-title-group">
+                  <Icons.Package className="card-icon" />
+                  <h2 className="card-title">{editingId ? "Edit Item" : "Add New Item"}</h2>
+                </div>
+                <button className="btn btn-sm btn-ghost" onClick={handleCloseModal}>
+                  <Icons.X className="btn-icon-sm" />
+                </button>
+              </div>
+
+              <div className="modal-body">
+                <form onSubmit={handleSubmit}>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <Icons.FileText className="label-icon" />
+                      <span>Item ID</span>
+                    </label>
+                    <input
+                      value={form.itemId}
+                      onChange={(e) => setForm({ ...form, itemId: e.target.value })}
+                      disabled={!!editingId}
+                      placeholder="e.g., ITEM001"
+                      required
+                    />
+                    {editingId && (
+                      <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                        Item ID cannot be changed
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      <Icons.Package className="label-icon" />
+                      <span>Item Name</span>
+                    </label>
+                    <input
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      placeholder="e.g., Coca Cola 330ml"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      <Icons.DollarSign className="label-icon" />
+                      <span>Buying Price (Optional)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.001"
+                      value={form.buyingPrice}
+                      onChange={(e) => setForm({ ...form, buyingPrice: e.target.value })}
+                      placeholder="0.000 KWD"
+                    />
+                    <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                      Leave empty if not applicable
+                    </p>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      <Icons.TrendingUp className="label-icon" />
+                      <span>Selling Price (Required)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.001"
+                      value={form.sellingPrice}
+                      onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })}
+                      placeholder="0.000 KWD"
+                      required
+                    />
+                  </div>
+
+                  <div className="btn-group" style={{ marginTop: "var(--space-6)" }}>
+                    <button type="submit" className="btn btn-primary" disabled={loading} style={{ flex: 1 }}>
+                      {editingId ? <Icons.Check className="btn-icon" /> : <Icons.Plus className="btn-icon" />}
+                      <span>{editingId ? "Update" : "Create"} Item</span>
+                    </button>
+                    <button type="button" className="btn btn-ghost" onClick={handleCloseModal}>
+                      <Icons.X className="btn-icon" />
+                      <span>Cancel</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
       </DashboardLayout>
     </ProtectedRoute>
   );

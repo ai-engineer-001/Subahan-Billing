@@ -56,3 +56,16 @@ func (s *Server) handleGetBill(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, bill)
 }
+
+func (s *Server) handleDeleteBill(w http.ResponseWriter, r *http.Request) {
+	billID := chi.URLParam(r, "billId")
+	if err := s.Store.DeleteBill(r.Context(), billID); err != nil {
+		if err == store.ErrNotFound {
+			writeError(w, http.StatusNotFound, "bill not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to delete bill")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

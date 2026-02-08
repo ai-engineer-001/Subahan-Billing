@@ -118,7 +118,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               onClick={() => setSidebarOpen(!sidebarOpen)}
               title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
             >
-              <div className="brand-icon">S</div>
+              <Icons.Menu className={`menu-icon ${sidebarOpen ? "active" : ""}`} />
             </button>
             <h1 className="page-title">
               {navItems.find((item) => item.path === pathname)?.label || "Dashboard"}

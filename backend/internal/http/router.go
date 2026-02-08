@@ -47,6 +47,7 @@ func (s *Server) Router() http.Handler {
 			protected.Get("/bills", s.handleListBills)
 			protected.Post("/bills", s.handleCreateBill)
 			protected.Get("/bills/{billId}", s.handleGetBill)
+			protected.Delete("/bills/{billId}", s.handleDeleteBill)
 		})
 	})
 
