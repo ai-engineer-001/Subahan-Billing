@@ -489,6 +489,7 @@ export default function ItemsPage() {
                     </label>
                     <div className="input-with-action">
                       <input
+                        type="text"
                         value={form.itemId}
                         maxLength={100}
                         onChange={(e) => {
@@ -520,6 +521,7 @@ export default function ItemsPage() {
                         <span>Item Name</span>
                       </label>
                       <input
+                        type="text"
                         value={form.name}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
                         placeholder="e.g., Coca Cola 330ml"
@@ -532,7 +534,8 @@ export default function ItemsPage() {
                         <span>Item Name (Arabic)</span>
                       </label>
                       <input
-                        value={form.arabicName}
+                        type="text"
+                        value={form.arabicName || ""}
                         onChange={(e) => setForm({ ...form, arabicName: e.target.value })}
                         placeholder="مثال: كوكاكولا 330 مل"
                         dir="rtl"
@@ -575,7 +578,7 @@ export default function ItemsPage() {
                     <input
                       type="number"
                       step="0.001"
-                      value={form.buyingPrice}
+                      value={form.buyingPrice || ""}
                       onChange={(e) => setForm({ ...form, buyingPrice: e.target.value })}
                       placeholder="0.000 KWD"
                     />
@@ -592,7 +595,7 @@ export default function ItemsPage() {
                     <input
                       type="number"
                       step="0.001"
-                      value={form.sellingPrice}
+                      value={form.sellingPrice || ""}
                       onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })}
                       placeholder="0.000 KWD"
                       required

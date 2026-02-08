@@ -254,7 +254,8 @@ export default function BillsPage() {
                   <div className="form-group">
                     <label className="form-label">Customer Name (optional)</label>
                     <input
-                      value={customer}
+                      type="text"
+                      value={customer || ""}
                       onChange={(e) => setCustomer(e.target.value)}
                       placeholder="Enter customer name or leave empty for walk-in"
                     />
@@ -317,7 +318,8 @@ export default function BillsPage() {
                                 <td>
                                   <div className="item-search">
                                     <input
-                                      value={selectedItem ? selectedItem.name : line.searchTerm}
+                                      type="text"
+                                      value={selectedItem ? selectedItem.name : (line.searchTerm || "")}
                                       onChange={(e) => handleSearchChange(index, e.target.value)}
                                       onFocus={() => setActiveSearchIndex(index)}
                                       placeholder="Type to search item..."
