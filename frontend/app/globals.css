@@ -244,7 +244,7 @@ body {
     transform: translateX(0);
   }
   
-  .sidebar-close {
+  .sidebar:not(.collapsed) .sidebar-close {
     display: block;
   }
 }
