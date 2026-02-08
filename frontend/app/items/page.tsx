@@ -54,17 +54,34 @@ export default function ItemsPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setStatus(null);
+
+    const trimmedName = form.name.trim();
+    const sellingValue = Number(form.sellingPrice);
+    if (!trimmedName) {
+      setStatus("Item name is required");
+      return;
+    }
+    if (!Number.isFinite(sellingValue) || sellingValue <= 0) {
+      setStatus("Selling price must be positive");
+      return;
+    }
+
     setLoading(true);
     
     try {
-      const payload = {
-        itemId: form.itemId.trim(),
-        name: form.name.trim(),
+      const payload: {
+        itemId?: string;
+        name: string;
+        buyingPrice: number | null;
+        sellingPrice: number;
+      } = {
+        name: trimmedName,
         buyingPrice: form.buyingPrice ? Number(form.buyingPrice) : null,
-        sellingPrice: Number(form.sellingPrice)
+        sellingPrice: sellingValue
       };
 
       if (editingId) {
+        payload.itemId = form.itemId.trim();
         await apiFetch(`/items/${editingId}`, {
           method: "PUT",
           body: JSON.stringify(payload)
@@ -368,24 +385,18 @@ export default function ItemsPage() {
 
               <div className="modal-body">
                 <form onSubmit={handleSubmit}>
-                  <div className="form-group">
-                    <label className="form-label">
-                      <Icons.FileText className="label-icon" />
-                      <span>Item ID</span>
-                    </label>
-                    <input
-                      value={form.itemId}
-                      onChange={(e) => setForm({ ...form, itemId: e.target.value })}
-                      disabled={!!editingId}
-                      placeholder="e.g., ITEM001"
-                      required
-                    />
-                    {editingId && (
+                  {editingId && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        <Icons.FileText className="label-icon" />
+                        <span>Item ID</span>
+                      </label>
+                      <div className="item-id-readonly">{form.itemId}</div>
                       <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
                         Item ID cannot be changed
                       </p>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   <div className="form-group">
                     <label className="form-label">

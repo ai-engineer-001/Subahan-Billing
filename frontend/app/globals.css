@@ -791,6 +791,17 @@ input:disabled {
   cursor: not-allowed;
 }
 
+.item-id-readonly {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
 .checkbox-label {
   display: flex;
   align-items: center;

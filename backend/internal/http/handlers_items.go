@@ -41,8 +41,8 @@ func (s *Server) handleCreateItem(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid payload")
 		return
 	}
-	if strings.TrimSpace(input.ItemID) == "" || strings.TrimSpace(input.Name) == "" {
-		writeError(w, http.StatusBadRequest, "itemId and name are required")
+	if strings.TrimSpace(input.Name) == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
 		return
 	}
 	if input.SellingPrice <= 0 {

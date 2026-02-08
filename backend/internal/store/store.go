@@ -3,8 +3,10 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -55,14 +57,69 @@ func (s *Store) GetItem(ctx context.Context, itemID string) (Item, error) {
 
 func (s *Store) CreateItem(ctx context.Context, input ItemCreate) (Item, error) {
 	var item Item
-	row := s.db.QueryRow(ctx,
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return item, err
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock(421987)"); err != nil {
+		return item, err
+	}
+
+	if _, err := tx.Exec(ctx, "DELETE FROM items WHERE deleted_at < now() - interval '1 day'"); err != nil {
+		return item, err
+	}
+
+	nextID, err := nextItemID(ctx, tx)
+	if err != nil {
+		return item, err
+	}
+
+	row := tx.QueryRow(ctx,
 		"INSERT INTO items (item_id, name, buying_price, selling_price) VALUES ($1, $2, $3, $4) RETURNING item_id, name, buying_price, selling_price, created_at, updated_at, deleted_at",
-		input.ItemID, input.Name, input.BuyingPrice, input.SellingPrice,
+		nextID, input.Name, input.BuyingPrice, input.SellingPrice,
 	)
 	if err := row.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 		return item, err
 	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return item, err
+	}
+
 	return item, nil
+}
+
+func nextItemID(ctx context.Context, tx pgx.Tx) (string, error) {
+	var nextNumber int
+	query := `
+		WITH existing AS (
+			SELECT CAST(SUBSTRING(item_id FROM 5) AS INT) AS num
+			FROM items
+			WHERE item_id LIKE 'ITEM%'
+				AND LENGTH(item_id) = 7
+				AND (deleted_at IS NULL OR deleted_at >= now() - interval '1 day')
+		),
+		maxnum AS (
+			SELECT COALESCE(MAX(num), 0) AS maxnum FROM existing
+		),
+		series AS (
+			SELECT generate_series(1, (SELECT maxnum + 1 FROM maxnum)) AS num
+		)
+		SELECT s.num
+		FROM series s
+		LEFT JOIN existing e ON e.num = s.num
+		WHERE e.num IS NULL
+		ORDER BY s.num
+		LIMIT 1;
+	`
+
+	if err := tx.QueryRow(ctx, query).Scan(&nextNumber); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("ITEM%03d", nextNumber), nil
 }
 
 func (s *Store) UpdateItem(ctx context.Context, input ItemCreate) (Item, error) {
