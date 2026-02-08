@@ -70,6 +70,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <Icons.X className="icon" />
           </button>
         </div>
+
+        <div className="sidebar-header">
+          <div className="brand-logo">
+            <div className="brand-icon">S</div>
+            <div className="brand-text">
+              <div className="brand-name">Subahan</div>
+              <div className="brand-subtitle">Billing</div>
+            </div>
+          </div>
+        </div>
         
         <nav className="sidebar-nav">
           {navItems.map((item) => (
