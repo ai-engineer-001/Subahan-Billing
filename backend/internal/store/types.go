@@ -35,7 +35,6 @@ type BillItem struct {
 	BillID           string  `json:"billId"`
 	ItemID           string  `json:"itemId"`
 	ItemName         string  `json:"itemName"`
-	Unit             string  `json:"unit"`
 	Quantity         int     `json:"quantity"`
 	UnitPrice        float64 `json:"unitPrice"`
 	BaseSellingPrice float64 `json:"baseSellingPrice"`
