@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { useAuth } from "./AuthProvider";
 import { useTheme } from "./ThemeProvider";
 import { usePathname, useRouter } from "next/navigation";
+import { Icons } from "./Icons";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -16,9 +17,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
 
   const navItems = [
-    { label: "Dashboard", path: "/dashboard", icon: "📊" },
-    { label: "Items", path: "/items", icon: "📦" },
-    { label: "Bills", path: "/bills", icon: "🧾" },
+    { label: "Dashboard", path: "/dashboard", Icon: Icons.Dashboard },
+    { label: "Items", path: "/items", Icon: Icons.Package },
+    { label: "Bills", path: "/bills", Icon: Icons.Receipt },
   ];
 
   const handleLogout = () => {
@@ -46,7 +47,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               href={item.path}
               className={`nav-item ${pathname === item.path ? "active" : ""}`}
             >
-              <span className="nav-icon">{item.icon}</span>
+              <item.Icon className="nav-icon" />
               <span className="nav-label">{item.label}</span>
             </a>
           ))}
@@ -54,10 +55,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <div className="sidebar-footer">
           <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
-            {theme === "light" ? "🌙" : "☀️"}
+            {theme === "light" ? <Icons.Moon className="icon" /> : <Icons.Sun className="icon" />}
           </button>
           <button className="logout-btn" onClick={handleLogout}>
-            <span>🚪</span>
+            <Icons.LogOut className="icon" />
             <span>Logout</span>
           </button>
         </div>
@@ -70,7 +71,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </h1>
           <div className="header-actions">
             <div className="user-badge">
-              <div className="user-avatar">A</div>
+              <Icons.User className="user-icon" />
               <span>Admin</span>
             </div>
           </div>

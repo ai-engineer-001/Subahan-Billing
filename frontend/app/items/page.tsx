@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
 import { ProtectedRoute } from "../../components/AuthProvider";
 import DashboardLayout from "../../components/DashboardLayout";
+import { Icons } from "../../components/Icons";
 
 type Item = {
   itemId: string;
@@ -108,7 +109,10 @@ export default function ItemsPage() {
         <div className="grid grid-2">
           <div className="card">
             <div className="card-header">
-              <h2 className="card-title">{editingId ? "Edit" : "Add"} Item</h2>
+              <div className="card-title-group">
+                <Icons.Package className="card-icon" />
+                <h2 className="card-title">{editingId ? "Edit" : "Add"} Item</h2>
+              </div>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -152,17 +156,21 @@ export default function ItemsPage() {
                 />
               </div>
               <div className="btn-group">
-                <button type="submit">{editingId ? "Update" : "Create"} Item</button>
+                <button type="submit" className="btn btn-primary">
+                  {editingId ? <Icons.Check className="btn-icon" /> : <Icons.Plus className="btn-icon" />}
+                  <span>{editingId ? "Update" : "Create"} Item</span>
+                </button>
                 {editingId && (
                   <button
                     type="button"
-                    className="ghost"
+                    className="btn btn-ghost"
                     onClick={() => {
                       setEditingId(null);
                       setForm({ ...emptyForm });
                     }}
                   >
-                    Cancel
+                    <Icons.X className="btn-icon" />
+                    <span>Cancel</span>
                   </button>
                 )}
               </div>
@@ -176,14 +184,17 @@ export default function ItemsPage() {
 
           <div className="card">
             <div className="card-header">
-              <h2 className="card-title">Items List</h2>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" }}>
+              <div className="card-title-group">
+                <Icons.FileText className="card-icon" />
+                <h2 className="card-title">Items List</h2>
+              </div>
+              <label className="checkbox-label">
                 <input
                   type="checkbox"
                   checked={includeDeleted}
                   onChange={(e) => setIncludeDeleted(e.target.checked)}
                 />
-                Show deleted
+                <span>Show deleted</span>
               </label>
             </div>
             <div className="table-container">
@@ -214,16 +225,19 @@ export default function ItemsPage() {
                         <div className="btn-group">
                           {!item.deletedAt ? (
                             <>
-                              <button className="ghost" onClick={() => handleEdit(item)}>
-                                Edit
+                              <button className="btn btn-sm btn-ghost" onClick={() => handleEdit(item)}>
+                                <Icons.Edit className="btn-icon-sm" />
+                                <span>Edit</span>
                               </button>
-                              <button className="danger" onClick={() => handleDelete(item.itemId)}>
-                                Delete
+                              <button className="btn btn-sm btn-danger" onClick={() => handleDelete(item.itemId)}>
+                                <Icons.Trash className="btn-icon-sm" />
+                                <span>Delete</span>
                               </button>
                             </>
                           ) : (
-                            <button className="success" onClick={() => handleRestore(item.itemId)}>
-                              Restore
+                            <button className="btn btn-sm btn-success" onClick={() => handleRestore(item.itemId)}>
+                              <Icons.RotateCcw className="btn-icon-sm" />
+                              <span>Restore</span>
                             </button>
                           )}
                         </div>

@@ -4,6 +4,7 @@ import { ProtectedRoute } from "../../components/AuthProvider";
 import DashboardLayout from "../../components/DashboardLayout";
 import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
+import { Icons } from "../../components/Icons";
 
 type Bill = {
   id: string;
@@ -56,29 +57,53 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-label">Active Items</div>
-            <div className="stat-value">{stats.activeItems}</div>
+          <div className="stat-card blue">
+            <div className="stat-icon">
+              <Icons.Package className="icon" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Active Items</div>
+              <div className="stat-value">{stats.activeItems}</div>
+            </div>
           </div>
-          <div className="stat-card">
-            <div className="stat-label">Total Items</div>
-            <div className="stat-value">{stats.totalItems}</div>
+          <div className="stat-card green">
+            <div className="stat-icon">
+              <Icons.FileText className="icon" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Total Items</div>
+              <div className="stat-value">{stats.totalItems}</div>
+            </div>
           </div>
-          <div className="stat-card">
-            <div className="stat-label">Recent Bills</div>
-            <div className="stat-value">{stats.recentBills}</div>
+          <div className="stat-card purple">
+            <div className="stat-icon">
+              <Icons.Receipt className="icon" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Recent Bills</div>
+              <div className="stat-value">{stats.recentBills}</div>
+            </div>
           </div>
-          <div className="stat-card">
-            <div className="stat-label">Total Revenue (KWD)</div>
-            <div className="stat-value">{stats.totalRevenue.toFixed(3)}</div>
+          <div className="stat-card orange">
+            <div className="stat-icon">
+              <Icons.DollarSign className="icon" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Total Revenue (KWD)</div>
+              <div className="stat-value">{stats.totalRevenue.toFixed(3)}</div>
+            </div>
           </div>
         </div>
 
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title">Recent Bills</h2>
-            <a href="/bills" className="btn">
-              View All
+            <div className="card-title-group">
+              <Icons.Receipt className="card-icon" />
+              <h2 className="card-title">Recent Bills</h2>
+            </div>
+            <a href="/bills" className="btn btn-outline">
+              <span>View All</span>
+              <Icons.TrendingUp className="btn-icon" />
             </a>
           </div>
 
@@ -100,8 +125,9 @@ export default function DashboardPage() {
                       <td>{new Date(bill.createdAt).toLocaleDateString()}</td>
                       <td>{bill.totalAmount.toFixed(3)}</td>
                       <td>
-                        <a href={`/print/${bill.id}`} className="badge primary">
-                          Print
+                        <a href={`/print/${bill.id}`} className="btn btn-sm btn-primary">
+                          <Icons.Printer className="btn-icon-sm" />
+                          <span>Print</span>
                         </a>
                       </td>
                     </tr>

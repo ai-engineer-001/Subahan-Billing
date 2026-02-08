@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
 import { ProtectedRoute } from "../../components/AuthProvider";
 import DashboardLayout from "../../components/DashboardLayout";
+import { Icons } from "../../components/Icons";
 
 type Item = {
   itemId: string;
@@ -109,7 +110,10 @@ export default function BillsPage() {
         <div className="grid grid-2">
           <div className="card">
             <div className="card-header">
-              <h2 className="card-title">Create New Bill</h2>
+              <div className="card-title-group">
+                <Icons.Receipt className="card-icon" />
+                <h2 className="card-title">Create New Bill</h2>
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label">Customer Name (optional)</label>
@@ -123,8 +127,9 @@ export default function BillsPage() {
             <div style={{ marginTop: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <h3 style={{ fontSize: "16px", fontWeight: "600" }}>Line Items</h3>
-                <button type="button" className="secondary" onClick={addLine}>
-                  + Add Item
+                <button type="button" className="btn btn-secondary" onClick={addLine}>
+                  <Icons.Plus className="btn-icon" />
+                  <span>Add Item</span>
                 </button>
               </div>
 
@@ -161,8 +166,9 @@ export default function BillsPage() {
                       />
                     </div>
                   </div>
-                  <button type="button" className="ghost danger" onClick={() => removeLine(index)} style={{ width: "100%", marginTop: "8px" }}>
-                    Remove
+                  <button type="button" className="btn btn-ghost btn-danger" onClick={() => removeLine(index)} style={{ width: "100%", marginTop: "8px" }}>
+                    <Icons.Trash className="btn-icon" />
+                    <span>Remove</span>
                   </button>
                 </div>
               ))}
@@ -182,8 +188,9 @@ export default function BillsPage() {
             )}
 
             <div style={{ marginTop: "20px" }}>
-              <button onClick={handleCreateBill} disabled={lines.length === 0} style={{ width: "100%" }}>
-                Create Bill
+              <button className="btn btn-primary" onClick={handleCreateBill} disabled={lines.length === 0} style={{ width: "100%" }}>
+                <Icons.Check className="btn-icon" />
+                <span>Create Bill</span>
               </button>
             </div>
 
@@ -196,7 +203,10 @@ export default function BillsPage() {
 
           <div className="card">
             <div className="card-header">
-              <h2 className="card-title">Recent Bills</h2>
+              <div className="card-title-group">
+                <Icons.FileText className="card-icon" />
+                <h2 className="card-title">Recent Bills</h2>
+              </div>
             </div>
             <div className="table-container">
               <table className="table">
@@ -217,8 +227,9 @@ export default function BillsPage() {
                       <td>{bill.totalAmount.toFixed(3)}</td>
                       <td>{new Date(bill.createdAt).toLocaleDateString()}</td>
                       <td>
-                        <a href={`/print/${bill.id}`} className="badge primary">
-                          Print
+                        <a href={`/print/${bill.id}`} className="btn btn-sm btn-primary">
+                          <Icons.Printer className="btn-icon-sm" />
+                          <span>Print</span>
                         </a>
                       </td>
                     </tr>
