@@ -6,7 +6,7 @@ Monorepo with:
 
 ## Neon
 - Apply the SQL in `backend/migrations/001_init.sql` to your Neon database.
-- Set `DATABASE_URL` in the backend `.env`.
+- Set `DATABASE_URL` in the backend `.env` (local) or Render environment variables (hosted).
 
 ## Run locally
 ```bash
@@ -21,5 +21,12 @@ npm run dev
 ```
 
 ## Hosting notes
-- Vercel: set `NEXT_PUBLIC_API_BASE_URL` to your Render API URL + `/api`.
-- Render: set `DATABASE_URL`, `JWT_SECRET`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `CORS_ORIGIN` to the Vercel URL.
+### Vercel (frontend)
+- Set `NEXT_PUBLIC_API_BASE_URL` to your Render API URL + `/api`.
+
+### Render (backend)
+- Set `DATABASE_URL` to your Neon connection string.
+- Set `JWT_SECRET` to a strong random value.
+- Set `ADMIN_USERNAME` and `ADMIN_PASSWORD` for the admin login.
+- Set `CORS_ORIGIN` to your Vercel frontend URL.
+- Set `PORT` if Render does not provide it automatically.
