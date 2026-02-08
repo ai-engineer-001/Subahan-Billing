@@ -6,6 +6,7 @@ import { apiFetch } from "../../../lib/api";
 type BillItem = {
   itemId: string;
   itemName: string;
+  arabicName: string;
   unit: string;
   quantity: number;
   unitPrice: number;
@@ -67,6 +68,10 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
     <>
       <style jsx>{`
         @media print {
+          @page {
+            margin: 12mm 10mm 18mm;
+          }
+
           .no-print {
             display: none !important;
           }
@@ -74,109 +79,108 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
             margin: 0;
             padding: 0;
           }
+          * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
           .invoice-container {
             max-width: 100%;
             margin: 0;
-            padding: 20mm;
+            padding: 10mm;
             box-shadow: none;
+          }
+          thead {
+            display: table-header-group;
+          }
+          tr {
+            page-break-inside: avoid;
           }
         }
 
         .invoice-container {
           max-width: 210mm;
-          margin: 20px auto;
-          padding: 15mm;
+          margin: 8px auto;
+          padding: 12mm;
+          width: 100%;
+          box-sizing: border-box;
           background: white;
           box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
         }
 
         .invoice-header {
+          background: #f5f0de;
+          border: 2px solid #8b7355;
+          border-radius: 25px;
+          padding: 20px 30px;
+          margin-bottom: 20px;
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 30px;
-          padding-bottom: 20px;
-          border-bottom: 3px solid #2563eb;
+          align-items: center;
         }
 
         .company-info h1 {
-          margin: 0 0 8px 0;
-          font-size: 28px;
-          color: #1e40af;
+          margin: 0 0 5px 0;
+          font-size: 24px;
+          color: #2c1810;
           font-weight: 700;
         }
 
         .company-info p {
-          margin: 4px 0;
-          font-size: 13px;
-          color: #64748b;
-        }
-
-        .invoice-details {
-          text-align: right;
+          margin: 2px 0;
+          font-size: 12px;
+          color: #5c4033;
         }
 
         .invoice-label {
-          font-size: 24px;
+          font-size: 28px;
           font-weight: 700;
-          color: #334155;
-          margin: 0 0 16px 0;
+          color: #2c1810;
+          text-align: center;
+          background: #f5f0de;
+          border: 2px solid #8b7355;
+          border-radius: 15px;
+          padding: 10px 40px;
+          margin: 0 0 20px 0;
         }
 
-        .detail-row {
+        .bill-info-box {
+          border: 2px solid #8b7355;
+          border-radius: 10px;
+          padding: 15px 20px;
+          margin-bottom: 20px;
+          background: white;
+        }
+
+        .info-row {
           display: flex;
           justify-content: space-between;
-          margin: 8px 0;
-          font-size: 14px;
+          padding: 8px 0;
+          border-bottom: 1px solid #e0d5c7;
         }
 
-        .detail-label {
-          font-weight: 600;
-          color: #475569;
-          min-width: 100px;
-        }
-
-        .detail-value {
-          color: #1e293b;
-        }
-
-        .bill-info-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 24px;
-          margin-bottom: 30px;
-          padding: 20px;
-          background: #f8fafc;
-          border-radius: 8px;
-          border: 1px solid #e2e8f0;
-        }
-
-        .info-block {
-          display: flex;
-          flex-direction: column;
+        .info-row:last-child {
+          border-bottom: none;
         }
 
         .info-label {
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: #64748b;
-          margin-bottom: 6px;
+          font-size: 13px;
           font-weight: 600;
+          color: #5c4033;
         }
 
         .info-value {
-          font-size: 15px;
-          color: #1e293b;
+          font-size: 13px;
+          color: #2c1810;
           font-weight: 500;
         }
 
         .invoice-table {
           width: 100%;
           border-collapse: collapse;
-          margin: 30px 0;
-          font-size: 13px;
+          margin: 20px 0;
+          font-size: 12px;
+          table-layout: fixed;
         }
 
         .invoice-table thead {
@@ -184,129 +188,161 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
         }
 
         .invoice-table th {
-          padding: 12px 10px;
-          text-align: left;
-          font-weight: 600;
-          color: #333;
-          border: 1px solid #8b7355;
-          font-size: 12px;
+          padding: 10px 8px;
+          text-align: center;
+          font-weight: 700;
+          color: #2c1810;
+          border: 2px solid #8b7355;
+          font-size: 11px;
           text-transform: uppercase;
           letter-spacing: 0.3px;
-          background: #f5f0de;
         }
 
-        .invoice-table th.text-center {
-          text-align: center;
-        }
-
-        .invoice-table th.text-right {
-          text-align: right;
+        .invoice-table th.text-left {
+          text-align: left;
         }
 
         .invoice-table td {
-          padding: 12px 10px;
-          border: 1px solid #8b7355;
-          color: #1e293b;
+          padding: 10px 8px;
+          border: 2px solid #8b7355;
+          color: #2c1810;
+          text-align: center;
+          word-break: break-word;
+        }
+
+        .invoice-table td.text-left {
+          text-align: left;
         }
 
         .invoice-table tbody tr:nth-child(even) {
-          background: #fafbfc;
-        }
-
-        .invoice-table tbody tr:hover {
-          background: #f8fafc;
+          background: #fafaf8;
         }
 
         .item-no {
           font-family: 'Courier New', monospace;
           font-weight: 600;
-          color: #475569;
+          color: #2c1810;
+          font-size: 12px;
         }
 
         .item-name {
           font-weight: 500;
+          text-align: left;
         }
 
-        .unit-badge {
-          display: inline-block;
-          padding: 4px 8px;
-          background: #dbeafe;
-          color: #1e40af;
-          border-radius: 4px;
+        .item-name-ar {
+          display: block;
+          margin-top: 4px;
           font-size: 11px;
+          color: #5c4033;
+          direction: rtl;
+          text-align: right;
+        }
+
+        .unit-text {
           font-weight: 600;
           text-transform: uppercase;
+          color: #5c4033;
         }
 
-        .text-center {
-          text-align: center;
-        }
-
-        .text-right {
-          text-align: right;
-        }
-
-        .price-split {
+        .price-cell {
           display: flex;
-          justify-content: flex-end;
-          gap: 8px;
+          justify-content: space-between;
+          align-items: center;
+          gap: 5px;
         }
 
-        .fils {
-          color: #64748b;
-          font-size: 11px;
-          min-width: 40px;
-        }
-
-        .kd {
-          font-weight: 600;
-          min-width: 70px;
+        .price-cell .fils {
+          flex: 0 0 50px;
           text-align: right;
+          color: #5c4033;
+          font-size: 11px;
+        }
+
+        .price-cell .kd {
+          flex: 1;
+          text-align: right;
+          font-weight: 600;
+          color: #2c1810;
         }
 
         .total-section {
-          margin-top: 30px;
-          display: flex;
-          justify-content: flex-end;
+          margin-top: 20px;
         }
 
         .total-box {
-          min-width: 350px;
+          width: 100%;
           background: #f5f0de;
-          border: 2px solid #8b7355;
-          border-radius: 0;
+          border: 3px solid #8b7355;
+          border-radius: 10px;
           padding: 20px 30px;
         }
 
         .total-row {
           display: flex;
           justify-content: space-between;
-          padding: 16px 0;
+          align-items: center;
         }
 
         .total-label {
-          font-size: 18px;
+          font-size: 20px;
           font-weight: 700;
-          color: #1e293b;
+          color: #2c1810;
         }
 
         .total-value {
-          font-size: 20px;
+          font-size: 24px;
           font-weight: 700;
-          color: #1e293b;
+          color: #2c1810;
         }
 
         .invoice-footer {
-          margin-top: 50px;
-          padding-top: 20px;
-          border-top: 2px solid #e2e8f0;
-          text-align: center;
+          margin-top: 30px;
+        }
+
+        .terms-box {
+          border: 2px solid #8b7355;
+          border-radius: 10px;
+          padding: 15px 20px;
+          background: #fafaf8;
+          margin-bottom: 20px;
         }
 
         .footer-text {
+          font-size: 11px;
+          color: #5c4033;
+          margin: 5px 0;
+          line-height: 1.5;
+        }
+
+        .footer-title {
+          font-weight: 700;
+          color: #2c1810;
+          margin-bottom: 8px;
+        }
+
+        .signature-section {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 30px;
+          margin-top: 30px;
+        }
+
+        .signature-box {
+          text-align: center;
+        }
+
+        .signature-line {
+          border-bottom: 2px solid #8b7355;
+          margin-bottom: 8px;
+          padding-bottom: 30px;
+        }
+
+        .signature-label {
           font-size: 12px;
-          color: #64748b;
-          margin: 6px 0;
+          font-weight: 700;
+          color: #2c1810;
+          text-transform: uppercase;
         }
 
         .print-controls {
@@ -352,14 +388,51 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
         .btn-secondary:hover {
           background: #475569;
         }
+
+        @media (max-width: 768px) {
+          .invoice-container {
+            max-width: 100%;
+            margin: 8px;
+            padding: 16px;
+          }
+
+          .invoice-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .invoice-label {
+            font-size: 22px;
+            padding: 8px 16px;
+          }
+
+          .invoice-table {
+            font-size: 11px;
+          }
+
+          .invoice-table th,
+          .invoice-table td {
+            padding: 6px 4px;
+          }
+        }
       `}</style>
 
       <div className="print-controls no-print">
         <button onClick={() => window.print()} className="btn btn-primary">
-          🖨️ Print Invoice
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 9V2h12v7" />
+            <path d="M6 18h12v4H6z" />
+            <path d="M6 14h12" />
+            <path d="M4 14a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2" />
+          </svg>
+          Print Invoice
         </button>
         <a href="/bills" className="btn btn-secondary">
-          ← Back to Bills
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          Back to Bills
         </a>
       </div>
 
@@ -368,81 +441,60 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
           <div className="company-info">
             <h1>Subahan Billing</h1>
             <p>Electronic Billing Solutions</p>
-            <p>Kuwait</p>
-            <p>Tel: +965 XXXX XXXX</p>
+            <p>Kuwait • Tel: +965 XXXX XXXX</p>
             <p>Email: info@subahan.com</p>
-          </div>
-          <div className="invoice-details">
-            <div className="invoice-label">INVOICE</div>
-            <div className="detail-row">
-              <span className="detail-label">Invoice No:</span>
-              <span className="detail-value">{invoiceNumber}</span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Date:</span>
-              <span className="detail-value">{invoiceDate.toLocaleDateString('en-GB')}</span>
-            </div>
           </div>
         </div>
 
-        <div className="bill-info-grid">
-          <div className="info-block">
-            <div className="info-label">Bill ID</div>
-            <div className="info-value">{bill.id}</div>
+        <div className="invoice-label">فاتورة مبيعات • INVOICE</div>
+
+        <div className="bill-info-box">
+          <div className="info-row">
+            <span className="info-label">Date:</span>
+            <span className="info-value">{invoiceDate.toLocaleDateString('en-GB')}</span>
           </div>
-          <div className="info-block">
-            <div className="info-label">Customer</div>
-            <div className="info-value">{bill.customer || "Walk-in Customer"}</div>
+          <div className="info-row">
+            <span className="info-label">Customer / السادة:</span>
+            <span className="info-value">{bill.customer || "Walk-in Customer"}</span>
           </div>
-          <div className="info-block">
-            <div className="info-label">Issue Date</div>
-            <div className="info-value">{invoiceDate.toLocaleString('en-GB')}</div>
-          </div>
-          <div className="info-block">
-            <div className="info-label">Payment Status</div>
-            <div className="info-value">Paid</div>
+          <div className="info-row">
+            <span className="info-label">Invoice No:</span>
+            <span className="info-value">{invoiceNumber}</span>
           </div>
         </div>
 
         <table className="invoice-table">
           <thead>
             <tr>
-              <th style={{ width: '10%' }}>Item No.</th>
-              <th style={{ width: '35%' }}>Description</th>
-              <th className="text-center" style={{ width: '10%' }}>Unit</th>
-              <th className="text-center" style={{ width: '10%' }}>Qty.</th>
-              <th className="text-right" style={{ width: '15%' }}>Unit Price</th>
-              <th className="text-right" style={{ width: '20%' }}>Total</th>
+              <th style={{ width: '8%' }}>رقم الصنف<br/>Item No.</th>
+              <th className="text-left" style={{ width: '32%' }}>تفاصيل البضاعة<br/>Description</th>
+              <th style={{ width: '10%' }}>الوحدة<br/>Unit</th>
+              <th style={{ width: '8%' }}>الكمية<br/>Qty.</th>
+              <th style={{ width: '10%' }}>قبس<br/>Fils</th>
+              <th style={{ width: '12%' }}>دينار K.D.<br/>Unit Price</th>
+              <th style={{ width: '10%' }}>قبس<br/>Fils</th>
+              <th style={{ width: '10%' }}>الإجمالي<br/>Total K.D.</th>
             </tr>
           </thead>
           <tbody>
             {bill.items.map((item, idx) => {
               const lineTotal = item.unitPrice * item.quantity;
               const unitPriceFils = Math.round((item.unitPrice % 1) * 1000);
-              const unitPriceKD = Math.floor(item.unitPrice * 1000) / 1000;
               const totalFils = Math.round((lineTotal % 1) * 1000);
-              const totalKD = Math.floor(lineTotal * 1000) / 1000;
 
               return (
                 <tr key={idx}>
-                  <td className="item-no">{item.itemId}</td>
-                  <td className="item-name">{item.itemName}</td>
-                  <td className="text-center">
-                    <span className="unit-badge">{item.unit}</span>
+                  <td><span className="item-no">{item.itemId}</span></td>
+                  <td className="text-left">
+                    <span className="item-name">{item.itemName}</span>
+                    {item.arabicName && <span className="item-name-ar">{item.arabicName}</span>}
                   </td>
-                  <td className="text-center">{item.quantity}</td>
-                  <td className="text-right">
-                    <div className="price-split">
-                      <span className="fils">{unitPriceFils}</span>
-                      <span className="kd">{unitPriceKD.toFixed(3)}</span>
-                    </div>
-                  </td>
-                  <td className="text-right">
-                    <div className="price-split">
-                      <span className="fils">{totalFils}</span>
-                      <span className="kd">{totalKD.toFixed(3)}</span>
-                    </div>
-                  </td>
+                  <td><span className="unit-text">{item.unit}</span></td>
+                  <td>{item.quantity}</td>
+                  <td>{unitPriceFils}</td>
+                  <td>{item.unitPrice.toFixed(3)}</td>
+                  <td>{totalFils}</td>
+                  <td>{lineTotal.toFixed(3)}</td>
                 </tr>
               );
             })}
@@ -452,44 +504,31 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
         <div className="total-section">
           <div className="total-box">
             <div className="total-row">
-              <span className="total-label">Total K.D.</span>
+              <span className="total-label">المجموع • Total K.D.</span>
               <span className="total-value">{bill.totalAmount.toFixed(3)}</span>
             </div>
           </div>
         </div>
 
         <div className="invoice-footer">
-          <div style={{ 
-            padding: '20px', 
-            background: '#f8f9fa', 
-            borderRadius: '4px', 
-            marginBottom: '20px',
-            textAlign: 'left'
-          }}>
-            <p className="footer-text" style={{ fontWeight: '600', marginBottom: '10px' }}>
-              Terms & Conditions:
-            </p>
-            <p className="footer-text" style={{ textAlign: 'left' }}>
+          <div className="terms-box">
+            <p className="footer-text footer-title">Terms & Conditions / الشروط والأحكام:</p>
+            <p className="footer-text">
               The Goods Sold can be exchanged and returned Within 15 days With The Original Invoice.
             </p>
-            <p className="footer-text" style={{ textAlign: 'left' }}>
+            <p className="footer-text">
               Received The Above Goods Complete And In Good Condition.
             </p>
           </div>
           
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '1fr 1fr', 
-            gap: '40px',
-            marginTop: '40px' 
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ borderBottom: '2px solid #333', marginBottom: '8px', paddingBottom: '30px' }}></div>
-              <p className="footer-text" style={{ fontWeight: '600' }}>SELLER'S NAME & SIG.</p>
+          <div className="signature-section">
+            <div className="signature-box">
+              <div className="signature-line"></div>
+              <p className="signature-label">Seller's Name & Sig.<br/>اسم وتوقيع البائع</p>
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ borderBottom: '2px solid #333', marginBottom: '8px', paddingBottom: '30px' }}></div>
-              <p className="footer-text" style={{ fontWeight: '600' }}>RECIPIENT'S NAME</p>
+            <div className="signature-box">
+              <div className="signature-line"></div>
+              <p className="signature-label">Recipient's Name<br/>اسم المستلم</p>
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import "time"
 type Item struct {
 	ItemID       string     `json:"itemId"`
 	Name         string     `json:"name"`
+	ArabicName   string     `json:"arabicName"`
 	BuyingPrice  *float64   `json:"buyingPrice"`
 	SellingPrice float64    `json:"sellingPrice"`
 	Unit         string     `json:"unit"`
@@ -16,6 +17,7 @@ type Item struct {
 type ItemCreate struct {
 	ItemID       string   `json:"itemId"`
 	Name         string   `json:"name"`
+	ArabicName   string   `json:"arabicName"`
 	BuyingPrice  *float64 `json:"buyingPrice"`
 	SellingPrice float64  `json:"sellingPrice"`
 	Unit         string   `json:"unit"`
@@ -35,6 +37,7 @@ type BillItem struct {
 	BillID           string  `json:"billId"`
 	ItemID           string  `json:"itemId"`
 	ItemName         string  `json:"itemName"`
+	ArabicName       string  `json:"arabicName"`
 	Unit             string  `json:"unit"`
 	Quantity         int     `json:"quantity"`
 	UnitPrice        float64 `json:"unitPrice"`

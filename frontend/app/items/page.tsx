@@ -9,6 +9,7 @@ import { Icons } from "../../components/Icons";
 type Item = {
   itemId: string;
   name: string;
+  arabicName: string;
   buyingPrice?: number | null;
   sellingPrice: number;
   unit: string;
@@ -18,6 +19,7 @@ type Item = {
 const emptyForm = {
   itemId: "",
   name: "",
+  arabicName: "",
   buyingPrice: "",
   sellingPrice: "",
   unit: "pcs"
@@ -82,6 +84,10 @@ export default function ItemsPage() {
       setStatus("Item name is required");
       return;
     }
+    if (!form.arabicName.trim()) {
+      setStatus("Arabic name is required");
+      return;
+    }
     if (!Number.isFinite(sellingValue) || sellingValue <= 0) {
       setStatus("Selling price must be positive");
       return;
@@ -93,11 +99,13 @@ export default function ItemsPage() {
       const payload: {
         itemId?: string;
         name: string;
+        arabicName: string;
         buyingPrice: number | null;
         sellingPrice: number;
         unit: string;
       } = {
         name: trimmedName,
+        arabicName: form.arabicName.trim(),
         buyingPrice: form.buyingPrice ? Number(form.buyingPrice) : null,
         sellingPrice: sellingValue,
         unit: form.unit || "pcs"
@@ -139,6 +147,7 @@ export default function ItemsPage() {
     setForm({
       itemId: item.itemId,
       name: item.name,
+      arabicName: item.arabicName || "",
       buyingPrice: item.buyingPrice?.toString() ?? "",
       sellingPrice: item.sellingPrice.toString(),
       unit: item.unit || "pcs"
@@ -216,8 +225,13 @@ export default function ItemsPage() {
 
     try {
       const item = await apiFetch<Item>(`/items/${encodeURIComponent(trimmedId)}`);
-      setIdCheckMessage(`Item exists with same id and ${item.name}.`);
-      setIdCheckKind("error");
+      if (editingId && item.itemId === editingId) {
+        setIdCheckMessage("Item ID is valid");
+        setIdCheckKind("success");
+      } else {
+        setIdCheckMessage(`Item exists with same id and ${item.name}.`);
+        setIdCheckKind("error");
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
       if (message.toLowerCase().includes("not found")) {
@@ -273,26 +287,34 @@ export default function ItemsPage() {
             </button>
           </div>
 
-          <div className="tabs-container">
+          <div className="items-toggle-row">
+            <div className="segmented-toggle" role="tablist" aria-label="Item lists">
               <button
-                className={`tab ${activeTab === "active" ? "active" : ""}`}
+                type="button"
+                className={activeTab === "active" ? "segmented-option active" : "segmented-option"}
                 onClick={() => setActiveTab("active")}
+                role="tab"
+                aria-selected={activeTab === "active"}
               >
-                <Icons.Package className="tab-icon" />
+                <Icons.Package className="btn-icon-sm" />
                 <span>Active Items</span>
                 <span className="tab-badge">{activeItems.length}</span>
               </button>
               <button
-                className={`tab ${activeTab === "trash" ? "active" : ""}`}
+                type="button"
+                className={activeTab === "trash" ? "segmented-option active" : "segmented-option"}
                 onClick={() => setActiveTab("trash")}
+                role="tab"
+                aria-selected={activeTab === "trash"}
               >
-                <Icons.Trash className="tab-icon" />
+                <Icons.Trash className="btn-icon-sm" />
                 <span>Trash Bin</span>
                 {deletedItems.length > 0 && (
                   <span className="tab-badge danger">{deletedItems.length}</span>
                 )}
               </button>
             </div>
+          </div>
 
             {activeTab === "active" && (
               <>
@@ -308,7 +330,7 @@ export default function ItemsPage() {
                     <p>Create your first item using the Add Item button</p>
                   </div>
                 ) : (
-                  <div className="table-container">
+                  <div className="table-container items-table-container">
                     <table className="table">
                       <thead>
                         <tr>
@@ -394,7 +416,7 @@ export default function ItemsPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="table-container">
+                    <div className="table-container items-table-container">
                       <table className="table">
                         <thead>
                           <tr>
@@ -460,63 +482,63 @@ export default function ItemsPage() {
 
               <div className="modal-body">
                 <form onSubmit={handleSubmit}>
-                  {editingId && (
-                    <div className="form-group">
-                      <label className="form-label">
-                        <Icons.FileText className="label-icon" />
-                        <span>Item ID</span>
-                      </label>
-                      <div className="item-id-readonly">{form.itemId}</div>
-                      <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
-                        Item ID cannot be changed
-                      </p>
-                    </div>
-                  )}
-
-                  {!editingId && (
-                    <div className="form-group">
-                      <label className="form-label">
-                        <Icons.FileText className="label-icon" />
-                        <span>Item ID</span>
-                      </label>
-                      <div className="input-with-action">
-                        <input
-                          value={form.itemId}
-                          maxLength={100}
-                          onChange={(e) => {
-                            setForm({ ...form, itemId: e.target.value });
-                            setIdCheckMessage(null);
-                            setIdCheckKind(null);
-                          }}
-                          placeholder="e.g., ABC123"
-                          required
-                        />
-                        <button type="button" className="btn btn-sm btn-secondary" onClick={handleVerifyId}>
-                          Verify
-                        </button>
-                      </div>
-                      {idCheckMessage && (
-                        <p className={`inline-notice ${idCheckKind === "success" ? "success" : "error"}`}>
-                          {idCheckMessage}
-                        </p>
-                      )}
-                      <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
-                        Up to 100 letters and numbers (no spaces)
-                      </p>
-                    </div>
-                  )}
-
                   <div className="form-group">
                     <label className="form-label">
-                      <Icons.Package className="label-icon" />
-                      <span>Item Name</span>
+                      <Icons.FileText className="label-icon" />
+                      <span>Item ID</span>
                     </label>
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      placeholder="e.g., Coca Cola 330ml"
-                      required
-                    />
+                    <div className="input-with-action">
+                      <input
+                        value={form.itemId}
+                        maxLength={100}
+                        onChange={(e) => {
+                          setForm({ ...form, itemId: e.target.value });
+                          setIdCheckMessage(null);
+                          setIdCheckKind(null);
+                        }}
+                        placeholder="e.g., ABC123"
+                        required
+                      />
+                      <button type="button" className="btn btn-sm btn-secondary" onClick={handleVerifyId}>
+                        {editingId ? "Check" : "Verify"}
+                      </button>
+                    </div>
+                    {idCheckMessage && (
+                      <p className={`inline-notice ${idCheckKind === "success" ? "success" : "error"}`}>
+                        {idCheckMessage}
+                      </p>
+                    )}
+                    <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                      {editingId ? "Update the Item ID if needed" : "Up to 100 letters and numbers (no spaces)"}
+                    </p>
+                  </div>
+
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label className="form-label">
+                        <Icons.Package className="label-icon" />
+                        <span>Item Name</span>
+                      </label>
+                      <input
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        placeholder="e.g., Coca Cola 330ml"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">
+                        <Icons.Package className="label-icon" />
+                        <span>Item Name (Arabic)</span>
+                      </label>
+                      <input
+                        value={form.arabicName}
+                        onChange={(e) => setForm({ ...form, arabicName: e.target.value })}
+                        placeholder="مثال: كوكاكولا 330 مل"
+                        dir="rtl"
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="form-group">

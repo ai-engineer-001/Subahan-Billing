@@ -24,7 +24,7 @@ func New(db *pgxpool.Pool) *Store {
 }
 
 func (s *Store) ListItems(ctx context.Context, includeDeleted bool) ([]Item, error) {
-	query := "SELECT item_id, name, buying_price, selling_price, unit, created_at, updated_at, deleted_at FROM items"
+	query := "SELECT item_id, name, arabic_name, buying_price, selling_price, unit, created_at, updated_at, deleted_at FROM items"
 	if !includeDeleted {
 		query += " WHERE deleted_at IS NULL"
 	}
@@ -39,7 +39,7 @@ func (s *Store) ListItems(ctx context.Context, includeDeleted bool) ([]Item, err
 	items := []Item{}
 	for rows.Next() {
 		var item Item
-		if err := rows.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
+		if err := rows.Scan(&item.ItemID, &item.Name, &item.ArabicName, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -49,8 +49,8 @@ func (s *Store) ListItems(ctx context.Context, includeDeleted bool) ([]Item, err
 
 func (s *Store) GetItem(ctx context.Context, itemID string) (Item, error) {
 	var item Item
-	row := s.db.QueryRow(ctx, "SELECT item_id, name, buying_price, selling_price, unit, created_at, updated_at, deleted_at FROM items WHERE item_id=$1", itemID)
-	if err := row.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
+	row := s.db.QueryRow(ctx, "SELECT item_id, name, arabic_name, buying_price, selling_price, unit, created_at, updated_at, deleted_at FROM items WHERE item_id=$1", itemID)
+	if err := row.Scan(&item.ItemID, &item.Name, &item.ArabicName, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 		return item, ErrNotFound
 	}
 	return item, nil
@@ -86,10 +86,10 @@ func (s *Store) CreateItem(ctx context.Context, input ItemCreate) (Item, error) 
 		unit = "pcs"
 	}
 	row := tx.QueryRow(ctx,
-		"INSERT INTO items (item_id, name, buying_price, selling_price, unit) VALUES ($1, $2, $3, $4, $5) RETURNING item_id, name, buying_price, selling_price, unit, created_at, updated_at, deleted_at",
-		itemID, input.Name, input.BuyingPrice, input.SellingPrice, unit,
+		"INSERT INTO items (item_id, name, arabic_name, buying_price, selling_price, unit) VALUES ($1, $2, $3, $4, $5, $6) RETURNING item_id, name, arabic_name, buying_price, selling_price, unit, created_at, updated_at, deleted_at",
+		itemID, input.Name, input.ArabicName, input.BuyingPrice, input.SellingPrice, unit,
 	)
-	if err := row.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
+	if err := row.Scan(&item.ItemID, &item.Name, &item.ArabicName, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 		return item, err
 	}
 
@@ -134,10 +134,10 @@ func nextItemID(ctx context.Context, tx pgx.Tx) (string, error) {
 func (s *Store) UpdateItem(ctx context.Context, input ItemCreate) (Item, error) {
 	var item Item
 	row := s.db.QueryRow(ctx,
-		"UPDATE items SET name=$2, buying_price=$3, selling_price=$4, unit=$5, updated_at=now() WHERE item_id=$1 AND deleted_at IS NULL RETURNING item_id, name, buying_price, selling_price, unit, created_at, updated_at, deleted_at",
-		input.ItemID, input.Name, input.BuyingPrice, input.SellingPrice, input.Unit,
+		"UPDATE items SET name=$2, arabic_name=$3, buying_price=$4, selling_price=$5, unit=$6, updated_at=now() WHERE item_id=$1 AND deleted_at IS NULL RETURNING item_id, name, arabic_name, buying_price, selling_price, unit, created_at, updated_at, deleted_at",
+		input.ItemID, input.Name, input.ArabicName, input.BuyingPrice, input.SellingPrice, input.Unit,
 	)
-	if err := row.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
+	if err := row.Scan(&item.ItemID, &item.Name, &item.ArabicName, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 		return item, ErrNotFound
 	}
 	return item, nil
@@ -190,10 +190,10 @@ func (s *Store) CreateBill(ctx context.Context, input BillCreate) (Bill, error) 
 			return bill, errors.New("quantity must be positive")
 		}
 
-		var itemID, name string
+		var itemID, name, arabicName string
 		var sellingPrice float64
-		row := tx.QueryRow(ctx, "SELECT item_id, name, selling_price FROM items WHERE item_id=$1 AND deleted_at IS NULL", line.ItemID)
-		if err := row.Scan(&itemID, &name, &sellingPrice); err != nil {
+		row := tx.QueryRow(ctx, "SELECT item_id, name, arabic_name, selling_price FROM items WHERE item_id=$1 AND deleted_at IS NULL", line.ItemID)
+		if err := row.Scan(&itemID, &name, &arabicName, &sellingPrice); err != nil {
 			return bill, ErrNotFound
 		}
 
@@ -208,6 +208,7 @@ func (s *Store) CreateBill(ctx context.Context, input BillCreate) (Bill, error) 
 		items = append(items, BillItem{
 			ItemID:           itemID,
 			ItemName:         name,
+			ArabicName:       arabicName,
 			Quantity:         line.Quantity,
 			UnitPrice:        unitPrice,
 			BaseSellingPrice: sellingPrice,
@@ -220,7 +221,7 @@ func (s *Store) CreateBill(ctx context.Context, input BillCreate) (Bill, error) 
 	}
 
 	for i := range items {
-		row := tx.QueryRow(ctx, "INSERT INTO bill_items (bill_id, item_id, item_name, quantity, unit_price, base_selling_price) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id", bill.ID, items[i].ItemID, items[i].ItemName, items[i].Quantity, items[i].UnitPrice, items[i].BaseSellingPrice)
+		row := tx.QueryRow(ctx, "INSERT INTO bill_items (bill_id, item_id, item_name, item_name_ar, quantity, unit_price, base_selling_price) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id", bill.ID, items[i].ItemID, items[i].ItemName, items[i].ArabicName, items[i].Quantity, items[i].UnitPrice, items[i].BaseSellingPrice)
 		if err := row.Scan(&items[i].ID); err != nil {
 			return bill, err
 		}
@@ -265,9 +266,10 @@ func (s *Store) GetBill(ctx context.Context, billID string) (Bill, error) {
 	}
 
 	rows, err := s.db.Query(ctx, `
-		SELECT bi.id, bi.bill_id, bi.item_id, bi.item_name, 
+		SELECT bi.id, bi.bill_id, bi.item_id, bi.item_name,
+		       COALESCE(bi.item_name_ar, i.arabic_name, '') as item_name_ar,
 		       COALESCE(i.unit, 'pcs') as unit,
-		       bi.quantity, bi.unit_price, bi.base_selling_price 
+		       bi.quantity, bi.unit_price, bi.base_selling_price
 		FROM bill_items bi
 		LEFT JOIN items i ON bi.item_id = i.item_id
 		WHERE bi.bill_id=$1 
@@ -281,7 +283,7 @@ func (s *Store) GetBill(ctx context.Context, billID string) (Bill, error) {
 	items := []BillItem{}
 	for rows.Next() {
 		var item BillItem
-		if err := rows.Scan(&item.ID, &item.BillID, &item.ItemID, &item.ItemName, &item.Unit, &item.Quantity, &item.UnitPrice, &item.BaseSellingPrice); err != nil {
+		if err := rows.Scan(&item.ID, &item.BillID, &item.ItemID, &item.ItemName, &item.ArabicName, &item.Unit, &item.Quantity, &item.UnitPrice, &item.BaseSellingPrice); err != nil {
 			return bill, err
 		}
 		items = append(items, item)

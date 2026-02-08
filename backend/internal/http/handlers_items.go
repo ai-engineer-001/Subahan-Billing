@@ -52,6 +52,10 @@ func (s *Server) handleCreateItem(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "name is required")
 		return
 	}
+	if strings.TrimSpace(input.ArabicName) == "" {
+		writeError(w, http.StatusBadRequest, "arabicName is required")
+		return
+	}
 	if input.SellingPrice <= 0 {
 		writeError(w, http.StatusBadRequest, "sellingPrice must be positive")
 		return
@@ -80,6 +84,10 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 	input.ItemID = itemID
 	if strings.TrimSpace(input.Name) == "" {
 		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+	if strings.TrimSpace(input.ArabicName) == "" {
+		writeError(w, http.StatusBadRequest, "arabicName is required")
 		return
 	}
 	if input.SellingPrice <= 0 {

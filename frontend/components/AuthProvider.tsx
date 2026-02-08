@@ -31,6 +31,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     clearAuth();
     setIsAuthenticated(false);
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("billDraft");
+    }
   };
 
   return (
