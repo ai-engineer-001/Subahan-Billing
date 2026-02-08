@@ -7,6 +7,7 @@ type Item struct {
 	Name         string     `json:"name"`
 	BuyingPrice  *float64   `json:"buyingPrice"`
 	SellingPrice float64    `json:"sellingPrice"`
+	Unit         string     `json:"unit"`
 	CreatedAt    time.Time  `json:"createdAt"`
 	UpdatedAt    time.Time  `json:"updatedAt"`
 	DeletedAt    *time.Time `json:"deletedAt"`
@@ -17,6 +18,7 @@ type ItemCreate struct {
 	Name         string   `json:"name"`
 	BuyingPrice  *float64 `json:"buyingPrice"`
 	SellingPrice float64  `json:"sellingPrice"`
+	Unit         string   `json:"unit"`
 }
 
 type Bill struct {

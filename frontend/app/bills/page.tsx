@@ -9,7 +9,9 @@ import { Icons } from "../../components/Icons";
 type Item = {
   itemId: string;
   name: string;
+  buyingPrice?: number | null;
   sellingPrice: number;
+  unit: string;
 };
 
 type Bill = {
@@ -158,7 +160,18 @@ export default function BillsPage() {
                     </button>
                   </div>
 
-                  {lines.map((line, index) => (
+                  {lines.map((line, index) => {
+                    const selectedItem = items.find(item => item.itemId === line.itemId);
+                    const lineTotal = line.quantity * line.unitPrice;
+                    const profitPerUnit = selectedItem?.buyingPrice 
+                      ? line.unitPrice - selectedItem.buyingPrice 
+                      : 0;
+                    const totalProfit = profitPerUnit * line.quantity;
+                    const profitMargin = selectedItem?.buyingPrice && selectedItem.buyingPrice > 0
+                      ? ((line.unitPrice - selectedItem.buyingPrice) / line.unitPrice * 100)
+                      : 0;
+
+                    return (
                     <div key={index} className="card line-item-card">
                       <div className="form-group">
                         <label className="form-label">Item</label>
@@ -173,7 +186,7 @@ export default function BillsPage() {
                       </div>
                       <div className="line-item-grid">
                         <div className="form-group">
-                          <label className="form-label">Quantity</label>
+                          <label className="form-label">Quantity {selectedItem && `(${selectedItem.unit})`}</label>
                           <input
                             type="number"
                             min="1"
@@ -191,12 +204,29 @@ export default function BillsPage() {
                           />
                         </div>
                       </div>
+                      {selectedItem && selectedItem.buyingPrice && (
+                        <div className="line-item-stats">
+                          <div className="stat-row">
+                            <span className="stat-label">Line Total:</span>
+                            <span className="stat-value">{lineTotal.toFixed(3)} KWD</span>
+                          </div>
+                          <div className="stat-row">
+                            <span className="stat-label">Profit Margin:</span>
+                            <span className="stat-value profit">{profitMargin.toFixed(1)}%</span>
+                          </div>
+                          <div className="stat-row">
+                            <span className="stat-label">Total Profit:</span>
+                            <span className="stat-value profit">{totalProfit.toFixed(3)} KWD</span>
+                          </div>
+                        </div>
+                      )}
                       <button type="button" className="btn btn-ghost btn-danger btn-block" onClick={() => removeLine(index)}>
                         <Icons.Trash className="btn-icon" />
                         <span>Remove</span>
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
 
                   {lines.length === 0 && (
                     <p className="notice">No items added yet. Click "Add Item" to start.</p>

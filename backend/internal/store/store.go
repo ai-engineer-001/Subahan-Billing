@@ -23,7 +23,7 @@ func New(db *pgxpool.Pool) *Store {
 }
 
 func (s *Store) ListItems(ctx context.Context, includeDeleted bool) ([]Item, error) {
-	query := "SELECT item_id, name, buying_price, selling_price, created_at, updated_at, deleted_at FROM items"
+	query := "SELECT item_id, name, buying_price, selling_price, unit, created_at, updated_at, deleted_at FROM items"
 	if !includeDeleted {
 		query += " WHERE deleted_at IS NULL"
 	}
@@ -38,7 +38,7 @@ func (s *Store) ListItems(ctx context.Context, includeDeleted bool) ([]Item, err
 	items := []Item{}
 	for rows.Next() {
 		var item Item
-		if err := rows.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
+		if err := rows.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -48,8 +48,8 @@ func (s *Store) ListItems(ctx context.Context, includeDeleted bool) ([]Item, err
 
 func (s *Store) GetItem(ctx context.Context, itemID string) (Item, error) {
 	var item Item
-	row := s.db.QueryRow(ctx, "SELECT item_id, name, buying_price, selling_price, created_at, updated_at, deleted_at FROM items WHERE item_id=$1", itemID)
-	if err := row.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
+	row := s.db.QueryRow(ctx, "SELECT item_id, name, buying_price, selling_price, unit, created_at, updated_at, deleted_at FROM items WHERE item_id=$1", itemID)
+	if err := row.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 		return item, ErrNotFound
 	}
 	return item, nil
@@ -77,10 +77,10 @@ func (s *Store) CreateItem(ctx context.Context, input ItemCreate) (Item, error) 
 	}
 
 	row := tx.QueryRow(ctx,
-		"INSERT INTO items (item_id, name, buying_price, selling_price) VALUES ($1, $2, $3, $4) RETURNING item_id, name, buying_price, selling_price, created_at, updated_at, deleted_at",
-		nextID, input.Name, input.BuyingPrice, input.SellingPrice,
+		"INSERT INTO items (item_id, name, buying_price, selling_price, unit) VALUES ($1, $2, $3, $4, $5) RETURNING item_id, name, buying_price, selling_price, unit, created_at, updated_at, deleted_at",
+		nextID, input.Name, input.BuyingPrice, input.SellingPrice, input.Unit,
 	)
-	if err := row.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
+	if err := row.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 		return item, err
 	}
 
@@ -125,10 +125,10 @@ func nextItemID(ctx context.Context, tx pgx.Tx) (string, error) {
 func (s *Store) UpdateItem(ctx context.Context, input ItemCreate) (Item, error) {
 	var item Item
 	row := s.db.QueryRow(ctx,
-		"UPDATE items SET name=$2, buying_price=$3, selling_price=$4, updated_at=now() WHERE item_id=$1 AND deleted_at IS NULL RETURNING item_id, name, buying_price, selling_price, created_at, updated_at, deleted_at",
-		input.ItemID, input.Name, input.BuyingPrice, input.SellingPrice,
+		"UPDATE items SET name=$2, buying_price=$3, selling_price=$4, unit=$5, updated_at=now() WHERE item_id=$1 AND deleted_at IS NULL RETURNING item_id, name, buying_price, selling_price, unit, created_at, updated_at, deleted_at",
+		input.ItemID, input.Name, input.BuyingPrice, input.SellingPrice, input.Unit,
 	)
-	if err := row.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
+	if err := row.Scan(&item.ItemID, &item.Name, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 		return item, ErrNotFound
 	}
 	return item, nil

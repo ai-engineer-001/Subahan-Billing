@@ -11,6 +11,7 @@ type Item = {
   name: string;
   buyingPrice?: number | null;
   sellingPrice: number;
+  unit: string;
   deletedAt?: string | null;
 };
 
@@ -18,7 +19,8 @@ const emptyForm = {
   itemId: "",
   name: "",
   buyingPrice: "",
-  sellingPrice: ""
+  sellingPrice: "",
+  unit: "pcs"
 };
 
 type TabType = "active" | "trash";
@@ -74,10 +76,12 @@ export default function ItemsPage() {
         name: string;
         buyingPrice: number | null;
         sellingPrice: number;
+        unit: string;
       } = {
         name: trimmedName,
         buyingPrice: form.buyingPrice ? Number(form.buyingPrice) : null,
-        sellingPrice: sellingValue
+        sellingPrice: sellingValue,
+        unit: form.unit || "pcs"
       };
 
       if (editingId) {
@@ -114,7 +118,8 @@ export default function ItemsPage() {
       itemId: item.itemId,
       name: item.name,
       buyingPrice: item.buyingPrice?.toString() ?? "",
-      sellingPrice: item.sellingPrice.toString()
+      sellingPrice: item.sellingPrice.toString(),
+      unit: item.unit || "pcs"
     });
     setModalOpen(true);
   };
@@ -247,6 +252,7 @@ export default function ItemsPage() {
                         <tr>
                           <th>Item ID</th>
                           <th>Name</th>
+                          <th>Unit</th>
                           <th>Buying</th>
                           <th>Selling</th>
                           <th>Actions</th>
@@ -260,6 +266,9 @@ export default function ItemsPage() {
                             </td>
                             <td>
                               <strong>{item.name}</strong>
+                            </td>
+                            <td>
+                              <span className="badge">{item.unit}</span>
                             </td>
                             <td>
                               {item.buyingPrice ? (
@@ -329,6 +338,7 @@ export default function ItemsPage() {
                           <tr>
                             <th>Item ID</th>
                             <th>Name</th>
+                            <th>Unit</th>
                             <th>Selling Price</th>
                             <th>Deleted At</th>
                             <th>Actions</th>
@@ -342,6 +352,9 @@ export default function ItemsPage() {
                               </td>
                               <td>
                                 <strong>{item.name}</strong>
+                              </td>
+                              <td>
+                                <span className="badge">{item.unit}</span>
                               </td>
                               <td>
                                 <span className="price">{item.sellingPrice.toFixed(3)} KWD</span>
@@ -409,6 +422,32 @@ export default function ItemsPage() {
                       placeholder="e.g., Coca Cola 330ml"
                       required
                     />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      <Icons.Package className="label-icon" />
+                      <span>Unit Type</span>
+                    </label>
+                    <select
+                      value={form.unit}
+                      onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                    >
+                      <option value="pcs">Pieces (pcs)</option>
+                      <option value="box">Box</option>
+                      <option value="carton">Carton</option>
+                      <option value="kg">Kilogram (kg)</option>
+                      <option value="g">Gram (g)</option>
+                      <option value="L">Liter (L)</option>
+                      <option value="mL">Milliliter (mL)</option>
+                      <option value="m">Meter (m)</option>
+                      <option value="pack">Pack</option>
+                      <option value="set">Set</option>
+                      <option value="dozen">Dozen</option>
+                    </select>
+                    <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                      Select the unit of measurement for this item
+                    </p>
                   </div>
 
                   <div className="form-group">
