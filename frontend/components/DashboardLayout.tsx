@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
 import { useTheme } from "./ThemeProvider";
 import { usePathname, useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const navItems = [
     { label: "Dashboard", path: "/dashboard", Icon: Icons.Dashboard },
@@ -27,25 +28,50 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     router.push("/login");
   };
 
+  // Close sidebar on mobile when route changes
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+
+    // Set initial state based on screen size
+    handleResize();
+
+    // Listen for window resize
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Close sidebar when clicking outside on mobile
+  const handleBackdropClick = () => {
+    if (window.innerWidth <= 768) {
+      setSidebarOpen(false);
+    }
+  };
+
   return (
     <div className="dashboard-container">
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <div className="brand-logo">
-            <div className="brand-icon">S</div>
-            <div className="brand-text">
-              <div className="brand-name">Subahan</div>
-              <div className="brand-subtitle">Billing</div>
-            </div>
-          </div>
-        </div>
+      {/* Backdrop for mobile */}
+      {sidebarOpen && (
+        <div className="sidebar-backdrop" onClick={handleBackdropClick}></div>
+      )}
 
+      <aside className={`sidebar ${sidebarOpen ? "" : "collapsed"}`}>
         <nav className="sidebar-nav">
           {navItems.map((item) => (
             <a
               key={item.path}
               href={item.path}
               className={`nav-item ${pathname === item.path ? "active" : ""}`}
+              onClick={() => {
+                if (window.innerWidth <= 768) {
+                  setSidebarOpen(false);
+                }
+              }}
             >
               <item.Icon className="nav-icon" />
               <span className="nav-label">{item.label}</span>
@@ -66,9 +92,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <main className="dashboard-main">
         <header className="dashboard-header">
-          <h1 className="page-title">
-            {navItems.find((item) => item.path === pathname)?.label || "Dashboard"}
-          </h1>
+          <div className="header-left">
+            <button 
+              className="menu-toggle" 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            >
+              <div className="brand-icon">S</div>
+            </button>
+            <h1 className="page-title">
+              {navItems.find((item) => item.path === pathname)?.label || "Dashboard"}
+            </h1>
+          </div>
           <div className="header-actions">
             <div className="user-badge">
               <Icons.User className="user-icon" />

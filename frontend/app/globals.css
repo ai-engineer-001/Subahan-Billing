@@ -189,6 +189,52 @@ body {
   flex-direction: column;
   flex-shrink: 0;
   box-shadow: var(--shadow-sm);
+  transition: width 0.3s ease, transform 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 0;
+  transform: translateX(-100%);
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: var(--z-fixed);
+    transform: translateX(-100%);
+  }
+  
+  .sidebar:not(.collapsed) {
+    transform: translateX(0);
+  }
+}
+
+/* Sidebar Backdrop (Mobile) */
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: calc(var(--z-fixed) - 1);
+    animation: fadeIn 0.2s ease;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .sidebar-header {
@@ -348,6 +394,43 @@ body {
   align-items: center;
   justify-content: space-between;
   box-shadow: var(--shadow-sm);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.menu-toggle {
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.menu-toggle:hover {
+  transform: scale(1.05);
+}
+
+.menu-toggle .brand-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+}
+
+.menu-toggle:hover .brand-icon {
+  box-shadow: var(--shadow-lg);
 }
 
 .page-title {
@@ -915,28 +998,12 @@ button:disabled, .btn:disabled {
    ========================================== */
 
 @media (max-width: 768px) {
-  .sidebar {
-    width: 70px;
-  }
-  
-  .sidebar-header {
-    padding: var(--space-4);
-  }
-  
-  .brand-text, .nav-label, .logout-btn span {
-    display: none;
-  }
-  
-  .nav-item {
-    justify-content: center;
-  }
-  
   .dashboard-header {
     padding: var(--space-4);
   }
   
   .page-title {
-    font-size: 20px;
+    font-size: 18px;
   }
   
   .dashboard-content {
@@ -949,6 +1016,12 @@ button:disabled, .btn:disabled {
   
   .user-badge span {
     display: none;
+  }
+  
+  .menu-toggle .brand-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
   }
 }
 
