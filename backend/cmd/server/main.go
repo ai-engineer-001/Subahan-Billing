@@ -15,6 +15,7 @@ import (
 	"subahan-billing-backend/internal/config"
 	api "subahan-billing-backend/internal/http"
 	"subahan-billing-backend/internal/jobs"
+	"subahan-billing-backend/internal/migrations"
 	"subahan-billing-backend/internal/store"
 )
 
@@ -32,6 +33,11 @@ func main() {
 		log.Fatalf("db connection error: %v", err)
 	}
 	defer pool.Close()
+
+	// Run database migrations
+	if err := migrations.Run(ctx, pool); err != nil {
+		log.Fatalf("migration error: %v", err)
+	}
 
 	cache := cache.New()
 	store := store.New(pool)

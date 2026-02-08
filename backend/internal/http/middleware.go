@@ -57,7 +57,7 @@ func corsMiddleware(origin string) func(http.Handler) http.Handler {
 			// Support multiple origins (comma-separated)
 			requestOrigin := r.Header.Get("Origin")
 			allowedOrigin := origin
-			
+
 			if origin == "*" {
 				allowedOrigin = "*"
 			} else if requestOrigin != "" && strings.Contains(origin, ",") {
@@ -70,7 +70,7 @@ func corsMiddleware(origin string) func(http.Handler) http.Handler {
 					}
 				}
 			}
-			
+
 			w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization,Content-Type")

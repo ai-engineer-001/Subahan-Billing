@@ -6,12 +6,12 @@ import (
 )
 
 type Config struct {
-	DatabaseURL  string
-	Port         string
-	JWTSecret    string
-	AdminUser    string
-	AdminPass    string
-	CORSOrigin   string
+	DatabaseURL string
+	Port        string
+	JWTSecret   string
+	AdminUser   string
+	AdminPass   string
+	CORSOrigin  string
 }
 
 func Load() (Config, error) {
