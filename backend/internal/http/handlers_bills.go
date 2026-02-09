@@ -34,7 +34,7 @@ func (s *Server) handleCreateBill(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleListBills(w http.ResponseWriter, r *http.Request) {
 	limit := 50
 	offset := 0
-	
+
 	if v := strings.TrimSpace(r.URL.Query().Get("limit")); v != "" {
 		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
 			limit = parsed

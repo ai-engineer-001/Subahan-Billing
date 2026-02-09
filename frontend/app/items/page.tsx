@@ -102,6 +102,49 @@ export default function ItemsPage() {
 
   const isValidItemId = (value: string) => /^[A-Za-z0-9]+$/.test(value);
 
+  const transliterateToArabic = async (text: string): Promise<string> => {
+    if (!text.trim()) return "";
+    
+    try {
+      const response = await fetch(
+        `https://inputtools.google.com/request?text=${encodeURIComponent(text)}&itc=ar-t-i0-und&num=5&cp=0&cs=1&ie=utf-8&oe=utf-8&app=demopage`,
+        {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        console.error("Transliteration API error:", response.status);
+        return "";
+      }
+      
+      const data = await response.json();
+      
+      // Response format: ["SUCCESS", [["input", ["suggestion1", "suggestion2", ...], {...}]]]
+      if (data?.[0] === "SUCCESS" && data?.[1]?.[0]?.[1]?.[0]) {
+        return data[1][0][1][0]; // First suggestion
+      }
+      
+      return "";
+    } catch (error) {
+      console.error("Failed to transliterate:", error);
+      return "";
+    }
+  };
+
+  const handleNameBlur = async () => {
+    // Only auto-transliterate if Arabic name is empty
+    if (form.name.trim() && !form.arabicName.trim()) {
+      const arabicText = await transliterateToArabic(form.name);
+      if (arabicText) {
+        setForm(prev => ({ ...prev, arabicName: arabicText }));
+      }
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setStatus(null);
@@ -589,6 +632,7 @@ export default function ItemsPage() {
                         type="text"
                         value={form.name}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        onBlur={handleNameBlur}
                         placeholder="e.g., Coca Cola 330ml"
                         required
                       />

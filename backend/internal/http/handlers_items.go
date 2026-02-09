@@ -19,7 +19,7 @@ func (s *Server) handleListItems(w http.ResponseWriter, r *http.Request) {
 	includeDeleted := strings.ToLower(r.URL.Query().Get("includeDeleted")) == "true"
 	limit := 100
 	offset := 0
-	
+
 	if v := strings.TrimSpace(r.URL.Query().Get("limit")); v != "" {
 		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
 			limit = parsed
@@ -30,7 +30,7 @@ func (s *Server) handleListItems(w http.ResponseWriter, r *http.Request) {
 			offset = parsed
 		}
 	}
-	
+
 	cacheKey := "items:active"
 	if includeDeleted {
 		cacheKey = "items:all"
