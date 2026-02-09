@@ -42,7 +42,21 @@ export default function ItemsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [idCheckMessage, setIdCheckMessage] = useState<string | null>(null);
   const [idCheckKind, setIdCheckKind] = useState<"success" | "error" | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [transliterating, setTransliterating] = useState(false);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const transliterationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const itemsRef = useRef<Item[]>([]);
+  const inputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const hasMoreRef = useRef(true);
+  const loadingMoreRef = useRef(false);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    itemsRef.current = items;
+    hasMoreRef.current = hasMore;
+    loadingMoreRef.current = loadingMore;
+  }, [items, hasMore, loadingMore]);
 
   const activeItems = items.filter((item) => !item.deletedAt);
   const deletedItems = items.filter((item) => item.deletedAt);
@@ -75,7 +89,7 @@ export default function ItemsPage() {
   };
 
   const handleScroll = useCallback(() => {
-    if (!scrollContainerRef.current || !hasMore || loadingMore) return;
+    if (!scrollContainerRef.current || !hasMoreRef.current || loadingMoreRef.current) return;
 
     const container = scrollContainerRef.current;
     const scrollPosition = container.scrollTop + container.clientHeight;
@@ -84,7 +98,7 @@ export default function ItemsPage() {
     if (scrollPosition >= scrollThreshold) {
       loadItems(false);
     }
-  }, [hasMore, loadingMore, items.length]);
+  }, []); // No dependencies - uses refs instead!
 
   useEffect(() => {
     loadItems(true);
@@ -100,7 +114,35 @@ export default function ItemsPage() {
     }
   }, [handleScroll]);
 
+  // Lock body scroll when modal is open (prevents header scroll detection)
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [modalOpen]);
+
   const isValidItemId = (value: string) => /^[A-Za-z0-9]+$/.test(value);
+
+  // Safari-specific: Preserve cursor position during onChange
+  const handleInputChange = (field: string, value: string) => {
+    const input = inputRefs.current[field];
+    const cursorPosition = input?.selectionStart ?? value.length;
+    
+    setForm(prev => ({ ...prev, [field]: value }));
+    
+    // Restore cursor position after state update (Safari fix)
+    if (input) {
+      setTimeout(() => {
+        input.setSelectionRange(cursorPosition, cursorPosition);
+      }, 0);
+    }
+  };
 
   const transliterateToArabic = async (text: string): Promise<string> => {
     if (!text.trim()) return "";
@@ -136,11 +178,16 @@ export default function ItemsPage() {
   };
 
   const handleNameBlur = async () => {
-    // Only auto-transliterate if Arabic name is empty
-    if (form.name.trim() && !form.arabicName.trim()) {
-      const arabicText = await transliterateToArabic(form.name);
-      if (arabicText) {
-        setForm(prev => ({ ...prev, arabicName: arabicText }));
+    // Auto-transliterate on blur only (faster, less API calls)
+    if (form.name.trim()) {
+      setTransliterating(true);
+      try {
+        const arabicText = await transliterateToArabic(form.name);
+        if (arabicText) {
+          setForm(prev => ({ ...prev, arabicName: arabicText }));
+        }
+      } finally {
+        setTransliterating(false);
       }
     }
   };
@@ -309,6 +356,10 @@ export default function ItemsPage() {
       return;
     }
 
+    setVerifying(true);
+    setIdCheckMessage(null);
+    setIdCheckKind(null);
+
     try {
       const item = await apiFetch<Item>(`/items/${encodeURIComponent(trimmedId)}`);
       if (editingId && item.itemId === editingId) {
@@ -327,6 +378,8 @@ export default function ItemsPage() {
         setIdCheckMessage(message || "Unable to verify Item ID");
         setIdCheckKind("error");
       }
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -600,16 +653,24 @@ export default function ItemsPage() {
                         type="text"
                         value={form.itemId}
                         maxLength={100}
+                        ref={(el) => (inputRefs.current['itemId'] = el)}
                         onChange={(e) => {
-                          setForm({ ...form, itemId: e.target.value });
+                          handleInputChange('itemId', e.target.value);
                           setIdCheckMessage(null);
                           setIdCheckKind(null);
                         }}
                         placeholder="e.g., ABC123"
                         required
                       />
-                      <button type="button" className="btn btn-sm btn-secondary" onClick={handleVerifyId}>
-                        {editingId ? "Check" : "Verify"}
+                      <button type="button" className="btn btn-sm btn-secondary" onClick={handleVerifyId} disabled={verifying}>
+                        {verifying ? (
+                          <>
+                            <span className="spinner-small" style={{ marginRight: "6px" }}>⏳</span>
+                            <span>Checking...</span>
+                          </>
+                        ) : (
+                          <span>{editingId ? "Check" : "Verify"}</span>
+                        )}
                       </button>
                     </div>
                     {idCheckMessage && (
@@ -631,7 +692,9 @@ export default function ItemsPage() {
                       <input
                         type="text"
                         value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        ref={(el) => (inputRefs.current['name'] = el)}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        onBlur={handleNameBlur}
                         placeholder="e.g., Coca Cola 330ml"
                         required
                       />
@@ -640,11 +703,13 @@ export default function ItemsPage() {
                       <label className="form-label">
                         <Icons.Package className="label-icon" />
                         <span>Item Name (Arabic)</span>
+                        {transliterating && <span style={{ marginLeft: "8px", fontSize: "12px", color: "var(--text-tertiary)" }}>🔄 Transliterating...</span>}
                       </label>
                       <input
                         type="text"
                         value={form.arabicName || ""}
-                        onChange={(e) => setForm({ ...form, arabicName: e.target.value })}
+                        ref={(el) => (inputRefs.current['arabicName'] = el)}
+                        onChange={(e) => handleInputChange('arabicName', e.target.value)}
                         placeholder="مثال: كوكاكولا 330 مل"
                         dir="rtl"
                         required
@@ -679,7 +744,8 @@ export default function ItemsPage() {
                       type="number"
                       step="0.001"
                       value={form.buyingPrice || ""}
-                      onChange={(e) => setForm({ ...form, buyingPrice: e.target.value })}
+                      ref={(el) => (inputRefs.current['buyingPrice'] = el)}
+                      onChange={(e) => handleInputChange('buyingPrice', e.target.value)}
                       placeholder="0.000 KWD"
                     />
                     <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
@@ -696,7 +762,8 @@ export default function ItemsPage() {
                       type="number"
                       step="0.001"
                       value={form.sellingPrice || ""}
-                      onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })}
+                      ref={(el) => (inputRefs.current['sellingPrice'] = el)}
+                      onChange={(e) => handleInputChange('sellingPrice', e.target.value)}
                       placeholder="0.000 KWD"
                       required
                     />

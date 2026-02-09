@@ -65,6 +65,16 @@ export default function BillsPage() {
   const [loadingMoreBills, setLoadingMoreBills] = useState(false);
   const [hasMoreBills, setHasMoreBills] = useState(true);
   const billsContainerRef = useRef<HTMLDivElement>(null);
+  const billsRef = useRef<Bill[]>([]);
+  const hasMoreBillsRef = useRef(true);
+  const loadingMoreBillsRef = useRef(false);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    billsRef.current = bills;
+    hasMoreBillsRef.current = hasMoreBills;
+    loadingMoreBillsRef.current = loadingMoreBills;
+  }, [bills, hasMoreBills, loadingMoreBills]);
 
   const loadItems = async () => {
     const data = await apiFetch<Item[]>("/items");
@@ -120,7 +130,7 @@ export default function BillsPage() {
   };
 
   const handleBillsScroll = useCallback(() => {
-    if (!billsContainerRef.current || !hasMoreBills || loadingMoreBills) return;
+    if (!billsContainerRef.current || !hasMoreBillsRef.current || loadingMoreBillsRef.current) return;
     
     const container = billsContainerRef.current;
     const scrollPosition = container.scrollTop + container.clientHeight;
@@ -129,7 +139,7 @@ export default function BillsPage() {
     if (scrollPosition >= scrollThreshold) {
       loadBills(false);
     }
-  }, [hasMoreBills, loadingMoreBills, bills.length]);
+  }, []); // No dependencies - uses refs instead!
 
   useEffect(() => {
     loadItems();

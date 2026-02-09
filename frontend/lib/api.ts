@@ -76,14 +76,16 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       ...options,
       headers,
       signal: controller.signal,
-      keepalive: true
+      cache: 'no-store',
+      mode: 'cors',
+      credentials: 'same-origin'
     });
     clearTimeout(timeoutId);
 

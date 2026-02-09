@@ -179,6 +179,17 @@ body {
   min-height: -webkit-fill-available;
 }
 
+/* Prevent layout shift when modal locks body scroll */
+body.modal-open {
+  overflow: hidden !important;
+}
+
+@media (min-width: 769px) {
+  body.modal-open {
+    padding-right: 15px !important; /* Account for scrollbar width */
+  }
+}
+
 /* ==========================================
    DASHBOARD LAYOUT
    ========================================== */
@@ -482,22 +493,31 @@ body {
   align-items: center;
   justify-content: space-between;
   box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(8px);
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--surface);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  transform: translateY(0);
-  will-change: transform;
+  transform: translate3d(0, 0, 0);
   overflow: hidden;
 }
 
+/* Backdrop blur only on devices that can handle it (not iOS Safari) */
+@supports (backdrop-filter: blur(8px)) and (not (-webkit-touch-callout: none)) {
+  .dashboard-header {
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.9);
+  }
+  [data-theme="dark"] .dashboard-header {
+    background: rgba(23, 33, 52, 0.9);
+  }
+}
+
 [data-theme="dark"] .dashboard-header {
-  background: rgba(23, 33, 52, 0.9);
+  background: var(--surface);
 }
 
 .dashboard-header.header-hidden {
-  transform: translateY(-100%);
+  transform: translate3d(0, -100%, 0);
   height: 0;
   padding-top: 0;
   padding-bottom: 0;
@@ -598,6 +618,8 @@ body {
   background: var(--bg-secondary);
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
 }
 
 /* ==========================================
@@ -1495,7 +1517,16 @@ button:disabled, .btn:disabled {
   animation: spin 0.6s linear infinite;
 }
 
+.spinner-small {
+  display: inline-block;
+  animation: spin-slow 2s linear infinite;
+}
+
 @keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin-slow {
   to { transform: rotate(360deg); }
 }
 
@@ -2089,6 +2120,9 @@ button:disabled, .btn:disabled {
   align-items: center;
   justify-content: center;
   padding: var(--space-6);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: env(safe-area-inset-top, var(--space-6)) env(safe-area-inset-right, var(--space-6)) env(safe-area-inset-bottom, var(--space-6)) env(safe-area-inset-left, var(--space-6));
 }
 
 .modal-card {
@@ -2100,6 +2134,10 @@ button:disabled, .btn:disabled {
   box-shadow: var(--shadow-xl);
   overflow: hidden;
   animation: modalIn 0.2s ease;
+  margin: auto;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
@@ -2113,9 +2151,10 @@ button:disabled, .btn:disabled {
 
 .modal-body {
   padding: var(--space-6);
-  max-height: calc(100vh - 200px);
+  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-body::-webkit-scrollbar {
@@ -2143,6 +2182,42 @@ button:disabled, .btn:disabled {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Mobile modal optimizations */
+@media (max-width: 768px) {
+  .modal-backdrop {
+    padding: var(--space-4);
+    align-items: flex-start;
+    padding-top: max(var(--space-6), env(safe-area-inset-top));
+  }
+  
+  .modal-card {
+    max-height: calc(100vh - max(var(--space-8), env(safe-area-inset-top)) - max(var(--space-4), env(safe-area-inset-bottom)));
+    margin-top: 0;
+  }
+  
+  .modal-body {
+    padding: var(--space-4);
+  }
+  
+  .modal-header {
+    padding: var(--space-4);
+  }
+}
+
+@media (max-width: 400px) {
+  .modal-backdrop {
+    padding: var(--space-2);
+  }
+  
+  .modal-card {
+    border-radius: var(--radius-lg);
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
@@ -2563,6 +2638,61 @@ button:disabled, .btn:disabled {
 
 .price.primary {
   color: var(--primary);
+}
+
+/* ==========================================
+   SAFARI iOS OPTIMIZATIONS
+   ========================================== */
+
+/* Force hardware acceleration on iOS Safari for smooth scrolling */
+@supports (-webkit-touch-callout: none) {
+  .table-container,
+  .items-table-container,
+  .card,
+  .modal-card {
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+  }
+  
+  /* Disable smooth scroll on Safari - causes lag */
+  .dashboard-content {
+    scroll-behavior: auto;
+  }
+  
+  /* Optimize animations for Safari */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Fix input zoom on Safari */
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Prevent modal scroll from affecting body */
+  .modal-backdrop {
+    position: fixed;
+    overflow-y: scroll;
+    overscroll-behavior: contain;
+  }
+  
+  /* Fix input cursor jumping on Safari */
+  input {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  
+  /* Smooth modal scrolling */
+  .modal-body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
 }
 
 /* ==========================================
