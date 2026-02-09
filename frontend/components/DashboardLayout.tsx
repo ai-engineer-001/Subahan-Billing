@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState, useEffect, useRef } from "react";
 import { useAuth } from "./AuthProvider";
 import { useTheme } from "./ThemeProvider";
 import { usePathname, useRouter } from "next/navigation";
@@ -16,6 +16,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const navItems = [
     { label: "Dashboard", path: "/dashboard", Icon: Icons.Dashboard },
@@ -44,6 +47,36 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     // Listen for window resize
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Header scroll show/hide effect
+  useEffect(() => {
+    const contentElement = contentRef.current;
+    if (!contentElement) return;
+
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = contentElement.scrollTop;
+          
+          // Show header when scrolling down, hide when scrolling up
+          if (currentScrollY < lastScrollY.current || currentScrollY < 10) {
+            setHeaderVisible(true);
+          } else if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+            setHeaderVisible(false);
+          }
+          
+          lastScrollY.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    contentElement.addEventListener("scroll", handleScroll, { passive: true });
+    return () => contentElement.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Close sidebar when clicking outside on mobile
@@ -111,7 +144,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       <main className="dashboard-main">
-        <header className="dashboard-header">
+        <header className={`dashboard-header ${headerVisible ? "" : "header-hidden"}`}>
           <div className="header-left">
             <button 
               className="menu-toggle" 
@@ -126,13 +159,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
           <div className="header-actions">
             <div className="user-badge">
-              <Icons.User className="user-icon" />
-              <span>Admin</span>
+              <span>Subahaan</span>
             </div>
           </div>
         </header>
 
-        <div className="dashboard-content">{children}</div>
+        <div className="dashboard-content" ref={contentRef}>{children}</div>
       </main>
     </div>
   );

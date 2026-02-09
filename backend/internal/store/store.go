@@ -23,14 +23,14 @@ func New(db *pgxpool.Pool) *Store {
 	return &Store{db: db}
 }
 
-func (s *Store) ListItems(ctx context.Context, includeDeleted bool) ([]Item, error) {
+func (s *Store) ListItems(ctx context.Context, includeDeleted bool, limit, offset int) ([]Item, error) {
 	query := "SELECT item_id, name, arabic_name, buying_price, selling_price, unit, created_at, updated_at, deleted_at FROM items"
 	if !includeDeleted {
 		query += " WHERE deleted_at IS NULL"
 	}
-	query += " ORDER BY name"
+	query += " ORDER BY name LIMIT $1 OFFSET $2"
 
-	rows, err := s.db.Query(ctx, query)
+	rows, err := s.db.Query(ctx, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -239,11 +239,14 @@ func (s *Store) CreateBill(ctx context.Context, input BillCreate) (Bill, error) 
 	return bill, nil
 }
 
-func (s *Store) ListBills(ctx context.Context, limit int) ([]Bill, error) {
+func (s *Store) ListBills(ctx context.Context, limit, offset int) ([]Bill, error) {
 	if limit <= 0 {
 		limit = 50
 	}
-	rows, err := s.db.Query(ctx, "SELECT id, customer_name, total_amount, created_at, updated_at FROM bills ORDER BY created_at DESC LIMIT $1", limit)
+	if offset < 0 {
+		offset = 0
+	}
+	rows, err := s.db.Query(ctx, "SELECT id, customer_name, total_amount, created_at, updated_at FROM bills ORDER BY created_at DESC LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, err
 	}

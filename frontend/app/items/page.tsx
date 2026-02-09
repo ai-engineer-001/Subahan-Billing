@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { apiFetch } from "../../lib/api";
 import { ProtectedRoute } from "../../components/AuthProvider";
 import DashboardLayout from "../../components/DashboardLayout";
@@ -28,6 +28,8 @@ const emptyForm = {
 
 type TabType = "active" | "trash";
 
+const ITEMS_PER_PAGE = 20;
+
 export default function ItemsPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>("active");
@@ -35,28 +37,68 @@ export default function ItemsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [idCheckMessage, setIdCheckMessage] = useState<string | null>(null);
   const [idCheckKind, setIdCheckKind] = useState<"success" | "error" | null>(null);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
 
   const activeItems = items.filter((item) => !item.deletedAt);
   const deletedItems = items.filter((item) => item.deletedAt);
 
-  const loadItems = async () => {
-    setLoading(true);
+  const loadItems = async (reset: boolean = false) => {
+    if (reset) {
+      setLoading(true);
+      setHasMore(true);
+    } else {
+      setLoadingMore(true);
+    }
+    
     try {
-      const data = await apiFetch<Item[]>("/items?includeDeleted=true");
-      setItems(data);
+      const offset = reset ? 0 : items.length;
+      const data = await apiFetch<Item[]>(`/items?includeDeleted=true&limit=${ITEMS_PER_PAGE}&offset=${offset}`);
+      
+      if (reset) {
+        setItems(data);
+      } else {
+        setItems(prev => [...prev, ...data]);
+      }
+      
+      setHasMore(data.length === ITEMS_PER_PAGE);
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Failed to load items");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
+  const handleScroll = useCallback(() => {
+    if (!scrollContainerRef.current || !hasMore || loadingMore) return;
+
+    const container = scrollContainerRef.current;
+    const scrollPosition = container.scrollTop + container.clientHeight;
+    const scrollThreshold = container.scrollHeight * 0.8;
+
+    if (scrollPosition >= scrollThreshold) {
+      loadItems(false);
+    }
+  }, [hasMore, loadingMore, items.length]);
+
   useEffect(() => {
-    loadItems();
+    loadItems(true);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    scrollContainerRef.current = document.querySelector(".dashboard-content");
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", handleScroll);
+      return () => container.removeEventListener("scroll", handleScroll);
+    }
+  }, [handleScroll]);
 
   const isValidItemId = (value: string) => /^[A-Za-z0-9]+$/.test(value);
 
@@ -133,7 +175,7 @@ export default function ItemsPage() {
       setModalOpen(false);
       setIdCheckMessage(null);
       setIdCheckKind(null);
-      await loadItems();
+      await loadItems(true);
       
       setTimeout(() => setStatus(null), 3000);
     } catch (err) {
@@ -174,7 +216,7 @@ export default function ItemsPage() {
     setLoading(true);
     try {
       await apiFetch(`/items/${itemId}`, { method: "DELETE" });
-      await loadItems();
+      await loadItems(true);
       setStatus("Item moved to trash");
       setTimeout(() => setStatus(null), 3000);
     } catch (err) {
@@ -188,7 +230,7 @@ export default function ItemsPage() {
     setLoading(true);
     try {
       await apiFetch(`/items/${itemId}/restore`, { method: "POST" });
-      await loadItems();
+      await loadItems(true);
       setStatus("Item restored successfully!");
       setTimeout(() => setStatus(null), 3000);
     } catch (err) {
@@ -248,7 +290,7 @@ export default function ItemsPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", marginBottom: "var(--space-6)" }}>
+        <div className="stats-grid">
           <div className="stat-card blue">
             <div className="stat-icon">
               <Icons.Package className="icon" />
@@ -277,7 +319,7 @@ export default function ItemsPage() {
         )}
 
         <div className="card">
-          <div className="card-header">
+          <div className="card-header items-card-header">
             <div className="card-title-group">
               <Icons.Package className="card-icon" />
               <h2 className="card-title">Items</h2>
@@ -389,6 +431,17 @@ export default function ItemsPage() {
                         ))}
                       </tbody>
                     </table>
+                    {loadingMore && (
+                      <div style={{ padding: "var(--space-4)", textAlign: "center" }}>
+                        <Spinner />
+                        <p style={{ marginTop: "var(--space-2)", fontSize: "13px", color: "var(--text-tertiary)" }}>Loading more items...</p>
+                      </div>
+                    )}
+                    {!hasMore && activeItems.length > 0 && (
+                      <div style={{ padding: "var(--space-4)", textAlign: "center", color: "var(--text-tertiary)", fontSize: "13px" }}>
+                        All items loaded
+                      </div>
+                    )}
                   </div>
                 )}
               </>
@@ -461,6 +514,17 @@ export default function ItemsPage() {
                           ))}
                         </tbody>
                       </table>
+                      {loadingMore && (
+                        <div style={{ padding: "var(--space-4)", textAlign: "center" }}>
+                          <Spinner />
+                          <p style={{ marginTop: "var(--space-2)", fontSize: "13px", color: "var(--text-tertiary)" }}>Loading more items...</p>
+                        </div>
+                      )}
+                      {!hasMore && deletedItems.length > 0 && (
+                        <div style={{ padding: "var(--space-4)", textAlign: "center", color: "var(--text-tertiary)", fontSize: "13px" }}>
+                          All items loaded
+                        </div>
+                      )}
                     </div>
                   </>
                 )}

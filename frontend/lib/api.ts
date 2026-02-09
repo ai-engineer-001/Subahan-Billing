@@ -75,17 +75,31 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-  if (!response.ok) {
-    const body = (await response.json()) as ApiError;
-    throw new Error(body?.error || "Request failed");
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+      keepalive: true
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const body = (await response.json()) as ApiError;
+      throw new Error(body?.error || "Request failed");
+    }
+
+    return (await response.json()) as T;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout - please check your connection');
+    }
+    throw error;
   }
-
-  return (await response.json()) as T;
 }
 
 export async function login(username: string, password: string) {

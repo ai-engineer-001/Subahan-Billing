@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,23 +17,41 @@ const cacheTTL = time.Hour
 
 func (s *Server) handleListItems(w http.ResponseWriter, r *http.Request) {
 	includeDeleted := strings.ToLower(r.URL.Query().Get("includeDeleted")) == "true"
+	limit := 100
+	offset := 0
+	
+	if v := strings.TrimSpace(r.URL.Query().Get("limit")); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+	if v := strings.TrimSpace(r.URL.Query().Get("offset")); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
+	
 	cacheKey := "items:active"
 	if includeDeleted {
 		cacheKey = "items:all"
 	}
-
-	if cached, ok := s.Cache.Get(cacheKey); ok {
-		writeJSON(w, http.StatusOK, cached)
-		return
+	// Skip cache for paginated requests
+	if offset == 0 && limit >= 100 {
+		if cached, ok := s.Cache.Get(cacheKey); ok {
+			writeJSON(w, http.StatusOK, cached)
+			return
+		}
 	}
 
-	items, err := s.Store.ListItems(r.Context(), includeDeleted)
+	items, err := s.Store.ListItems(r.Context(), includeDeleted, limit, offset)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to load items")
 		return
 	}
 
-	s.Cache.Set(cacheKey, items, cacheTTL)
+	if offset == 0 && limit >= 100 {
+		s.Cache.Set(cacheKey, items, cacheTTL)
+	}
 	writeJSON(w, http.StatusOK, items)
 }
 

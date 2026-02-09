@@ -1,10 +1,11 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, useRef, useCallback } from "react";
 import { apiFetch } from "../../lib/api";
 import { ProtectedRoute } from "../../components/AuthProvider";
 import DashboardLayout from "../../components/DashboardLayout";
 import { Icons } from "../../components/Icons";
+import Spinner from "../../components/Spinner";
 
 type Item = {
   itemId: string;
@@ -45,6 +46,8 @@ type LineItem = {
   searchTerm: string;
 };
 
+const BILLS_PER_PAGE = 20;
+
 export default function BillsPage() {
   const draftKey = "billDraft";
   const [items, setItems] = useState<Item[]>([]);
@@ -58,39 +61,88 @@ export default function BillsPage() {
   const [activePanel, setActivePanel] = useState<"create" | "recent">("create");
   const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null);
   const [billSearchQuery, setBillSearchQuery] = useState("");
+  const [loadingBills, setLoadingBills] = useState(false);
+  const [loadingMoreBills, setLoadingMoreBills] = useState(false);
+  const [hasMoreBills, setHasMoreBills] = useState(true);
+  const billsContainerRef = useRef<HTMLDivElement>(null);
 
   const loadItems = async () => {
     const data = await apiFetch<Item[]>("/items");
     setItems(data);
   };
 
-  const loadBills = async () => {
-    const data = await apiFetch<Bill[]>("/bills");
-    setBills(data);
-    const details = await Promise.all(
-      data.map(async (bill) => {
-        try {
-          const detail = await apiFetch<BillDetail>(`/bills/${bill.id}`);
-          return [bill.id, detail] as const;
-        } catch (err) {
-          console.error("Failed to load bill details", bill.id, err);
-          return null;
-        }
-      })
-    );
-    const nextDetails: Record<string, BillDetail> = {};
-    details.forEach((entry) => {
-      if (entry) {
-        nextDetails[entry[0]] = entry[1];
+  const loadBills = async (reset: boolean = false) => {
+    if (reset) {
+      setLoadingBills(true);
+      setHasMoreBills(true);
+    } else {
+      setLoadingMoreBills(true);
+    }
+    
+    try {
+      const offset = reset ? 0 : bills.length;
+      const data = await apiFetch<Bill[]>(`/bills?limit=${BILLS_PER_PAGE}&offset=${offset}`);
+      
+      if (reset) {
+        setBills(data);
+      } else {
+        setBills(prev => [...prev, ...data]);
       }
-    });
-    setBillDetails(nextDetails);
+      
+      setHasMoreBills(data.length === BILLS_PER_PAGE);
+      
+      // Load details for new bills
+      const details = await Promise.all(
+        data.map(async (bill) => {
+          try {
+            const detail = await apiFetch<BillDetail>(`/bills/${bill.id}`);
+            return [bill.id, detail] as const;
+          } catch (err) {
+            console.error("Failed to load bill details", bill.id, err);
+            return null;
+          }
+        })
+      );
+      
+      const nextDetails: Record<string, BillDetail> = reset ? {} : { ...billDetails };
+      details.forEach((entry) => {
+        if (entry) {
+          nextDetails[entry[0]] = entry[1];
+        }
+      });
+      setBillDetails(nextDetails);
+    } catch (err) {
+      console.error("Failed to load bills:", err);
+    } finally {
+      setLoadingBills(false);
+      setLoadingMoreBills(false);
+    }
   };
+
+  const handleBillsScroll = useCallback(() => {
+    if (!billsContainerRef.current || !hasMoreBills || loadingMoreBills) return;
+    
+    const container = billsContainerRef.current;
+    const scrollPosition = container.scrollTop + container.clientHeight;
+    const scrollThreshold = container.scrollHeight * 0.8;
+    
+    if (scrollPosition >= scrollThreshold) {
+      loadBills(false);
+    }
+  }, [hasMoreBills, loadingMoreBills, bills.length]);
 
   useEffect(() => {
     loadItems();
-    loadBills();
+    loadBills(true);
   }, []);
+
+  useEffect(() => {
+    const container = billsContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleBillsScroll);
+      return () => container.removeEventListener('scroll', handleBillsScroll);
+    }
+  }, [handleBillsScroll]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -227,7 +279,7 @@ export default function BillsPage() {
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(draftKey);
       }
-      await loadBills();
+      await loadBills(true);
       setStatus("Bill created successfully");
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Failed to create bill");
@@ -483,8 +535,14 @@ export default function BillsPage() {
                         placeholder="Search by Bill ID, Customer, or Item Name..."
                       />
                     </div>
-                    <div className="table-container">
-                    <table className="table">
+                    {loadingBills ? (
+                      <div style={{ padding: "var(--space-6)", textAlign: "center" }}>
+                        <Spinner />
+                        <p style={{ marginTop: "var(--space-3)" }}>Loading bills...</p>
+                      </div>
+                    ) : (
+                      <div className="table-container" ref={billsContainerRef} style={{ maxHeight: "calc(100vh - 450px)", overflowY: "auto" }}>
+                      <table className="table">
                       <thead>
                         <tr>
                           <th>Bill ID</th>
@@ -598,6 +656,17 @@ export default function BillsPage() {
                         })}
                       </tbody>
                     </table>
+                    {loadingMoreBills && (
+                      <div style={{ padding: "var(--space-4)", textAlign: "center" }}>
+                        <Spinner />
+                        <p style={{ marginTop: "var(--space-2)", fontSize: "13px", color: "var(--text-tertiary)" }}>Loading more bills...</p>
+                      </div>
+                    )}
+                    {!hasMoreBills && bills.length > 0 && (
+                      <div style={{ padding: "var(--space-4)", textAlign: "center", color: "var(--text-tertiary)", fontSize: "13px" }}>
+                        All bills loaded
+                      </div>
+                    )}
                     {bills.filter((bill) => {
                       if (!billSearchQuery.trim()) return true;
                       const query = billSearchQuery.toLowerCase();
@@ -616,6 +685,7 @@ export default function BillsPage() {
                       <p className="notice">No bills found matching "{billSearchQuery}"</p>
                     )}
                   </div>
+                  )}
                 </>
               )}
               </div>

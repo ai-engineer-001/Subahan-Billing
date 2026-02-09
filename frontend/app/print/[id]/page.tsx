@@ -499,17 +499,7 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
           </div>
         </div>
 
-        <div className="invoice-footer">
-          <div className="terms-box">
-            <p className="footer-text footer-title">Terms & Conditions / الشروط والأحكام:</p>
-            <p className="footer-text">
-              The Goods Sold can be exchanged and returned Within 15 days With The Original Invoice.
-            </p>
-            <p className="footer-text">
-              Received The Above Goods Complete And In Good Condition.
-            </p>
-          </div>
-          
+        <div className="invoice-footer">          
           <div className="signature-section">
             <div className="signature-box">
               <div className="signature-line"></div>
