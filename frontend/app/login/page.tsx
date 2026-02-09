@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "../../components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { Icons } from "../../components/Icons";
+import Spinner from "../../components/Spinner";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -83,7 +84,7 @@ export default function LoginPage() {
           <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
             {loading ? (
               <>
-                <span className="spinner"></span>
+                <Spinner size={18} />
                 <span>Signing in...</span>
               </>
             ) : (

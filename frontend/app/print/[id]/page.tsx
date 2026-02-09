@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import Spinner from "../../../../components/Spinner";
 import { apiFetch } from "../../../lib/api";
 
 type BillItem = {
@@ -55,7 +56,7 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
   if (!bill) {
     return (
       <div className="loading-screen">
-        <div className="spinner"></div>
+        <Spinner size={48} />
         <p>Loading bill...</p>
       </div>
     );

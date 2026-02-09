@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import Spinner from "./Spinner";
 import { useRouter } from "next/navigation";
 import { getAuthToken, clearAuth, login as apiLogin } from "../lib/api";
 
@@ -64,7 +65,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <div className="loading-screen">
-        <div className="spinner"></div>
+        <Spinner size={48} />
         <p>Loading...</p>
       </div>
     );

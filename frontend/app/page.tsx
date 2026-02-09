@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../components/AuthProvider";
+import Spinner from "../components/Spinner";
 
 export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -20,7 +21,7 @@ export default function HomePage() {
 
   return (
     <div className="loading-screen">
-      <div className="spinner"></div>
+      <Spinner size={48} />
       <p>Loading...</p>
     </div>
   );
