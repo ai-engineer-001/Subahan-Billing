@@ -5,6 +5,7 @@ import { apiFetch } from "../../lib/api";
 import { ProtectedRoute } from "../../components/AuthProvider";
 import DashboardLayout from "../../components/DashboardLayout";
 import { Icons } from "../../components/Icons";
+import Spinner from "../../components/Spinner";
 
 type Item = {
   itemId: string;
@@ -320,7 +321,7 @@ export default function ItemsPage() {
               <>
                 {loading ? (
                   <div className="empty-state">
-                    <div className="spinner-large"></div>
+                    <Spinner />
                     <p>Loading items...</p>
                   </div>
                 ) : activeItems.length === 0 ? (
@@ -397,7 +398,7 @@ export default function ItemsPage() {
               <>
                 {loading ? (
                   <div className="empty-state">
-                    <div className="spinner-large"></div>
+                    <Spinner />
                     <p>Loading trash...</p>
                   </div>
                 ) : deletedItems.length === 0 ? (
