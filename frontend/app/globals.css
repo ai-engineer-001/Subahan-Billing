@@ -1365,12 +1365,6 @@ button:disabled, .btn:disabled {
   to { transform: rotate(360deg); }
 }
 
-/* ==========================================
-   RESPONSIVE DESIGN
-   ========================================== */
-
-@media (max-width: 768px) {
-
 /* SVG spinner styling for reusable component */
 .spinner-svg {
   display: inline-block;
@@ -1381,6 +1375,7 @@ button:disabled, .btn:disabled {
   transform-origin: center;
   vertical-align: middle;
 }
+
 .spinner-svg circle {
   stroke: currentColor;
   stroke-width: 3;
@@ -1405,6 +1400,16 @@ button:disabled, .btn:disabled {
   justify-content: center;
   gap: var(--space-3);
   padding: var(--space-6);
+  min-height: 100vh;
+}
+
+/* ==========================================
+   RESPONSIVE DESIGN
+   ========================================== */
+
+@media (max-width: 768px) {
+
+.loading-screen {
   min-height: 160px;
 }
   .dashboard-header {
