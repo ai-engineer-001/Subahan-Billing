@@ -632,7 +632,6 @@ export default function ItemsPage() {
                         type="text"
                         value={form.name}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        onBlur={handleNameBlur}
                         placeholder="e.g., Coca Cola 330ml"
                         required
                       />
@@ -663,16 +662,8 @@ export default function ItemsPage() {
                       onChange={(e) => setForm({ ...form, unit: e.target.value })}
                     >
                       <option value="pcs">Pieces (pcs)</option>
-                      <option value="box">Box</option>
-                      <option value="carton">Carton</option>
-                      <option value="kg">Kilogram (kg)</option>
-                      <option value="g">Gram (g)</option>
-                      <option value="L">Liter (L)</option>
-                      <option value="mL">Milliliter (mL)</option>
+                      <option value="roll">Roll</option>
                       <option value="m">Meter (m)</option>
-                      <option value="pack">Pack</option>
-                      <option value="set">Set</option>
-                      <option value="dozen">Dozen</option>
                     </select>
                     <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
                       Select the unit of measurement for this item
