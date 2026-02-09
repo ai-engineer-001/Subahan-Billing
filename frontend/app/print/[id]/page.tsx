@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import Head from "next/head";
 import Spinner from "../../../components/Spinner";
 import { apiFetch } from "../../../lib/api";
 
@@ -43,8 +44,38 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
   useEffect(() => {
     if (bill) {
       document.title = `Invoice ${bill.id.slice(0, 8)}`;
+      
+      // iOS Safari needs extra time to render before printing
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        // Give iOS more time to render the page properly
+        setTimeout(() => {
+          document.body.style.opacity = '1';
+        }, 300);
+        
+        // Set viewport for proper print rendering on iOS
+        let viewport = document.querySelector('meta[name="viewport"]');
+        if (viewport) {
+          viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, shrink-to-fit=no');
+        }
+      }
     }
   }, [bill]);
+
+  const handlePrint = () => {
+    // iOS Safari-specific print handling
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      // Force layout recalculation before printing on iOS
+      document.body.offsetHeight;
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    } else {
+      window.print();
+    }
+  };
 
   if (status) {
     return (
@@ -68,34 +99,135 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
 
   return (
     <>
+      <Head>
+        <title>Invoice {invoiceNumber}</title>
+        <meta name="description" content={`Invoice for ${bill.customer || 'Customer'}`} />
+        <style type="text/css" media="print">{`
+          @page { size: auto; margin: 0mm; }
+        `}</style>
+      </Head>
+      
+      <style jsx global>{`
+        @media print {
+          /* Aggressively hide browser headers and footers */
+          @page {
+            size: A4 portrait;
+            margin: 0mm;
+          }
+          
+          html {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          
+          body {
+            margin: 0 !important;
+            padding: 12mm 10mm 25mm 10mm !important;
+          }
+        }
+      `}</style>
+      
       <style jsx>{`
         @media print {
           @page {
-            margin: 12mm 10mm 18mm;
+            size: A4 portrait;
+            margin: 0mm;
           }
 
           .no-print {
             display: none !important;
           }
-          body {
-            margin: 0;
-            padding: 0;
+          
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
           }
+          
           * {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
+          
           .invoice-container {
-            max-width: 100%;
-            margin: 0;
-            padding: 10mm;
-            box-shadow: none;
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            transform: none !important;
           }
+          
+          /* iOS Safari: Replace flexbox with block layout */
+          .invoice-header {
+            display: block !important;
+            border-radius: 0 !important;
+          }
+          
+          .total-row {
+            display: block !important;
+            text-align: right !important;
+          }
+          
+          .total-label,
+          .total-value {
+            display: inline-block !important;
+          }
+          
+          /* iOS Safari: Replace grid with table layout */
+          .signature-section {
+            display: table !important;
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+          
+          .signature-box {
+            display: table-cell !important;
+            width: 50% !important;
+            padding: 0 15px !important;
+          }
+          
+          /* Remove problematic styles for iOS */
+          .invoice-header,
+          .invoice-label,
+          .bill-info-box,
+          .total-box,
+          .terms-box {
+            border-radius: 0 !important;
+            box-shadow: none !important;
+          }
+          
           thead {
-            display: table-header-group;
+            display: table-header-group !important;
           }
+          
           tr {
-            page-break-inside: avoid;
+            page-break-inside: avoid !important;
+          }
+          
+          tbody tr {
+            page-break-inside: avoid !important;
+          }
+          
+          /* Ensure table prints correctly */
+          .invoice-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+          
+          /* Position signature at bottom of last page */
+          .invoice-footer {
+            page-break-inside: avoid !important;
+            margin-top: 30mm !important;
+            position: relative !important;
+          }
+          
+          .signature-section {
+            page-break-inside: avoid !important;
+            margin-top: 20mm !important;
           }
         }
 
@@ -284,7 +416,8 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
         }
 
         .invoice-footer {
-          margin-top: 30px;
+          margin-top: 60px;
+          page-break-inside: avoid;
         }
 
         .terms-box {
@@ -309,20 +442,26 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
         }
 
         .signature-section {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 30px;
-          margin-top: 30px;
+          display: table;
+          width: 100%;
+          margin-top: 40px;
+          border-collapse: collapse;
+          page-break-inside: avoid;
         }
 
         .signature-box {
+          display: table-cell;
+          width: 50%;
           text-align: center;
+          padding: 0 20px;
+          vertical-align: bottom;
         }
 
         .signature-line {
           border-bottom: 2px solid #8b7355;
-          margin-bottom: 8px;
-          padding-bottom: 30px;
+          margin-bottom: 10px;
+          padding-bottom: 40px;
+          min-height: 50px;
         }
 
         .signature-label {
@@ -330,6 +469,7 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
           font-weight: 700;
           color: #2c1810;
           text-transform: uppercase;
+          line-height: 1.6;
         }
 
         .print-controls {
@@ -376,6 +516,22 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
           background: #475569;
         }
 
+        /* iOS-specific fixes */
+        @supports (-webkit-touch-callout: none) {
+          .invoice-header,
+          .total-row {
+            display: block;
+          }
+          
+          .signature-section {
+            display: table;
+          }
+          
+          .signature-box {
+            display: table-cell;
+          }
+        }
+        
         @media (max-width: 768px) {
           .invoice-container {
             max-width: 100%;
@@ -384,9 +540,7 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
           }
 
           .invoice-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 12px;
+            display: block;
           }
 
           .invoice-label {
@@ -395,32 +549,41 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
           }
 
           .invoice-table {
-            font-size: 11px;
+            font-size: 10px;
           }
 
           .invoice-table th,
           .invoice-table td {
             padding: 6px 4px;
+            font-size: 10px;
+          }
+          
+          .company-info h1 {
+            font-size: 20px;
+          }
+          
+          .company-info p {
+            font-size: 11px;
           }
         }
       `}</style>
 
       <div className="print-controls no-print">
-        <button onClick={() => window.print()} className="btn btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 9V2h12v7" />
-            <path d="M6 18h12v4H6z" />
-            <path d="M6 14h12" />
-            <path d="M4 14a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2" />
-          </svg>
-          Print Invoice
-        </button>
-        <a href="/bills" className="btn btn-secondary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-          Back to Bills
-        </a>
+        <button onClick={handlePrint} className="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 9V2h12v7" />
+              <path d="M6 18h12v4H6z" />
+              <path d="M6 14h12" />
+              <path d="M4 14a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2" />
+            </svg>
+            Print Invoice
+          </button>
+          <a href="/bills" className="btn btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            Back to Bills
+          </a>
       </div>
 
       <div className="invoice-container">

@@ -2700,15 +2700,45 @@ button:disabled, .btn:disabled {
    ========================================== */
 
 @media print {
-  body {
-    background: white;
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
   
-  .sidebar, .dashboard-header, button, .btn {
+  body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .sidebar, .dashboard-header, button:not(.no-print button), .btn:not(.no-print .btn) {
     display: none !important;
   }
   
   .dashboard-content {
-    padding: 0;
+    padding: 0 !important;
+  }
+  
+  /* iOS Safari print fixes */
+  @supports (-webkit-touch-callout: none) {
+    html, body {
+      width: 100% !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+    
+    /* Force simple layouts for iOS */
+    div[style*="display: flex"],
+    div[style*="display: grid"] {
+      display: block !important;
+    }
+    
+    /* Remove problematic properties */
+    * {
+      box-shadow: none !important;
+      transform: none !important;
+      border-radius: 0 !important;
+    }
   }
 }
