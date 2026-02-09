@@ -1283,26 +1283,12 @@ button:disabled, .btn:disabled {
 }
 
 /* ==========================================
-   LOGIN PAGE
+   LOADING STATES
    ========================================== */
 
-.login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #0066ff 0%, #4d94ff 100%);
-  padding: var(--space-6);
-}
-
-.login-card {
-  width: 100%;
-  max-width: 440px;
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
-  overflow: hidden;
-}
+/* Legacy .spinner-large kept for backwards compatibility
+   — prefer using the SVG-based `.spinner-svg` component for crisp,
+   accessible, and consistent loaders across the app. */
 
 .login-header {
   padding: var(--space-10) var(--space-8) var(--space-6);
