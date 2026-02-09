@@ -40,6 +40,7 @@ type BillItem struct {
 	ArabicName       string  `json:"arabicName"`
 	Unit             string  `json:"unit"`
 	Quantity         int     `json:"quantity"`
+	BuyingPrice      *float64 `json:"buyingPrice"`
 	UnitPrice        float64 `json:"unitPrice"`
 	BaseSellingPrice float64 `json:"baseSellingPrice"`
 }

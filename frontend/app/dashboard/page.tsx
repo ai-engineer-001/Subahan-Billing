@@ -2,14 +2,30 @@
 
 import { ProtectedRoute } from "../../components/AuthProvider";
 import DashboardLayout from "../../components/DashboardLayout";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
 import { Icons } from "../../components/Icons";
 
 type Bill = {
   id: string;
+  customer?: string | null;
   totalAmount: number;
   createdAt: string;
+};
+
+type BillItem = {
+  itemId: string;
+  itemName: string;
+  arabicName: string;
+  unit: string;
+  quantity: number;
+  buyingPrice?: number | null;
+  unitPrice: number;
+  baseSellingPrice: number;
+};
+
+type BillDetail = Bill & {
+  items: BillItem[];
 };
 
 type Item = {
@@ -25,6 +41,7 @@ export default function DashboardPage() {
     totalRevenue: 0,
   });
   const [recentBills, setRecentBills] = useState<Bill[]>([]);
+  const [billDetails, setBillDetails] = useState<Record<string, BillDetail>>({});
 
   useEffect(() => {
     const loadData = async () => {
@@ -45,6 +62,25 @@ export default function DashboardPage() {
         });
 
         setRecentBills(bills);
+
+        const details = await Promise.all(
+          bills.map(async (bill) => {
+            try {
+              const detail = await apiFetch<BillDetail>(`/bills/${bill.id}`);
+              return [bill.id, detail] as const;
+            } catch (err) {
+              console.error("Failed to load bill details", bill.id, err);
+              return null;
+            }
+          })
+        );
+        const nextDetails: Record<string, BillDetail> = {};
+        details.forEach((entry) => {
+          if (entry) {
+            nextDetails[entry[0]] = entry[1];
+          }
+        });
+        setBillDetails(nextDetails);
       } catch (err) {
         console.error("Failed to load dashboard data:", err);
       }
@@ -119,19 +155,79 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentBills.map((bill) => (
-                    <tr key={bill.id}>
-                      <td>{bill.id.slice(0, 8)}...</td>
-                      <td>{new Date(bill.createdAt).toLocaleDateString()}</td>
-                      <td>{bill.totalAmount.toFixed(3)}</td>
-                      <td>
-                        <a href={`/print/${bill.id}`} className="btn btn-sm btn-primary">
-                          <Icons.Printer className="btn-icon-sm" />
-                          <span>Print</span>
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
+                  {recentBills.map((bill) => {
+                    const detail = billDetails[bill.id];
+                    const getDiscountPerUnit = (item: BillItem) => Math.max(0, item.baseSellingPrice - item.unitPrice);
+                    const getLineProfit = (item: BillItem) => item.buyingPrice != null
+                      ? (item.unitPrice - item.buyingPrice) * item.quantity
+                      : null;
+
+                    return (
+                      <Fragment key={bill.id}>
+                        <tr>
+                          <td>{bill.id.slice(0, 8)}...</td>
+                          <td>{new Date(bill.createdAt).toLocaleDateString()}</td>
+                          <td className="cell-center">{bill.totalAmount.toFixed(3)}</td>
+                          <td>
+                            <a href={`/print/${bill.id}`} className="btn btn-sm btn-primary">
+                              <Icons.Printer className="btn-icon-sm" />
+                              <span>Print</span>
+                            </a>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td colSpan={4}>
+                            {detail ? (
+                              <div className="table-container line-items-table-container">
+                                <table className="table bill-items-table bill-items-table-readonly">
+                                  <thead>
+                                    <tr>
+                                      <th style={{ width: "120px" }}>Item No</th>
+                                      <th>Item Name</th>
+                                      <th className="cell-center">Unit</th>
+                                      <th className="cell-center">Qty</th>
+                                      <th className="cell-center">Unit Price (KWD)</th>
+                                      <th className="cell-center">Discount/Unit</th>
+                                      <th className="cell-center">Subtotal</th>
+                                      <th className="cell-center">Profit (KWD)</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {detail.items.map((item) => {
+                                      const lineSubtotal = item.unitPrice * item.quantity;
+                                      const lineProfit = getLineProfit(item);
+
+                                      return (
+                                        <tr key={`${bill.id}-${item.itemId}`}>
+                                          <td><span className="item-id">{item.itemId}</span></td>
+                                          <td>
+                                            <div>
+                                              <div>{item.itemName}</div>
+                                              {item.arabicName && (
+                                                <div className="text-muted" dir="rtl">{item.arabicName}</div>
+                                              )}
+                                            </div>
+                                          </td>
+                                          <td className="cell-center">{item.unit}</td>
+                                          <td className="cell-center">{item.quantity}</td>
+                                          <td className="cell-center">{item.unitPrice.toFixed(3)}</td>
+                                          <td className="cell-center">{getDiscountPerUnit(item).toFixed(3)}</td>
+                                          <td className="cell-center">{lineSubtotal.toFixed(3)}</td>
+                                          <td className="cell-center">{lineProfit === null ? "—" : lineProfit.toFixed(3)}</td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <p className="notice">Loading bill items...</p>
+                            )}
+                          </td>
+                        </tr>
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

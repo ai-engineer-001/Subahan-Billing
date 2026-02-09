@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
 import { ProtectedRoute } from "../../components/AuthProvider";
 import DashboardLayout from "../../components/DashboardLayout";
@@ -22,6 +22,21 @@ type Bill = {
   createdAt: string;
 };
 
+type BillItem = {
+  itemId: string;
+  itemName: string;
+  arabicName: string;
+  unit: string;
+  quantity: number;
+  buyingPrice?: number | null;
+  unitPrice: number;
+  baseSellingPrice: number;
+};
+
+type BillDetail = Bill & {
+  items: BillItem[];
+};
+
 type LineItem = {
   itemId: string;
   quantity: number;
@@ -34,6 +49,7 @@ export default function BillsPage() {
   const draftKey = "billDraft";
   const [items, setItems] = useState<Item[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
+  const [billDetails, setBillDetails] = useState<Record<string, BillDetail>>({});
   const [customer, setCustomer] = useState("");
   const [lines, setLines] = useState<LineItem[]>([
     { itemId: "", quantity: 1, unitPrice: 0, discountPerUnit: 0, searchTerm: "" }
@@ -41,6 +57,7 @@ export default function BillsPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<"create" | "recent">("create");
   const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null);
+  const [billSearchQuery, setBillSearchQuery] = useState("");
 
   const loadItems = async () => {
     const data = await apiFetch<Item[]>("/items");
@@ -50,6 +67,24 @@ export default function BillsPage() {
   const loadBills = async () => {
     const data = await apiFetch<Bill[]>("/bills");
     setBills(data);
+    const details = await Promise.all(
+      data.map(async (bill) => {
+        try {
+          const detail = await apiFetch<BillDetail>(`/bills/${bill.id}`);
+          return [bill.id, detail] as const;
+        } catch (err) {
+          console.error("Failed to load bill details", bill.id, err);
+          return null;
+        }
+      })
+    );
+    const nextDetails: Record<string, BillDetail> = {};
+    details.forEach((entry) => {
+      if (entry) {
+        nextDetails[entry[0]] = entry[1];
+      }
+    });
+    setBillDetails(nextDetails);
   };
 
   useEffect(() => {
@@ -158,6 +193,10 @@ export default function BillsPage() {
 
   const getEffectiveUnitPrice = (line: LineItem) => Math.max(0, line.unitPrice - line.discountPerUnit);
   const getLineSubtotal = (line: LineItem) => getEffectiveUnitPrice(line) * line.quantity;
+  const getDiscountPerUnit = (item: BillItem) => Math.max(0, item.baseSellingPrice - item.unitPrice);
+  const getLineProfit = (item: BillItem) => item.buyingPrice != null
+    ? (item.unitPrice - item.buyingPrice) * item.quantity
+    : null;
 
   const handleCreateBill = async () => {
     setStatus(null);
@@ -431,7 +470,20 @@ export default function BillsPage() {
               )}
 
                 {activePanel === "recent" && (
-                  <div className="table-container">
+                  <>
+                    <div className="form-group" style={{ marginBottom: "var(--space-4)" }}>
+                      <label className="form-label">
+                        <Icons.Search className="label-icon" />
+                        <span>Search Bills</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={billSearchQuery}
+                        onChange={(e) => setBillSearchQuery(e.target.value)}
+                        placeholder="Search by Bill ID, Customer, or Item Name..."
+                      />
+                    </div>
+                    <div className="table-container">
                     <table className="table">
                       <thead>
                         <tr>
@@ -443,34 +495,129 @@ export default function BillsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {bills.map((bill) => (
-                          <tr key={bill.id}>
-                            <td>{bill.id.slice(0, 8)}...</td>
-                            <td>{bill.customer || "Walk-in"}</td>
-                            <td>{bill.totalAmount.toFixed(3)}</td>
-                            <td>{new Date(bill.createdAt).toLocaleDateString()}</td>
-                            <td>
-                              <div className="btn-group">
-                                <a href={`/print/${bill.id}`} className="btn btn-sm btn-primary">
-                                  <Icons.Printer className="btn-icon-sm" />
-                                  <span>Print</span>
-                                </a>
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-danger"
-                                  onClick={() => handleDeleteBill(bill.id)}
-                                >
-                                  <Icons.Trash className="btn-icon-sm" />
-                                  <span>Remove</span>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {bills.filter((bill) => {
+                          if (!billSearchQuery.trim()) return true;
+                          const query = billSearchQuery.toLowerCase();
+                          const detail = billDetails[bill.id];
+                          
+                          // Search by bill ID
+                          if (bill.id.toLowerCase().includes(query)) return true;
+                          
+                          // Search by customer name
+                          if (bill.customer && bill.customer.toLowerCase().includes(query)) return true;
+                          
+                          // Search by item names in bill
+                          if (detail) {
+                            return detail.items.some(item => 
+                              item.itemName.toLowerCase().includes(query) ||
+                              item.itemId.toLowerCase().includes(query) ||
+                              (item.arabicName && item.arabicName.includes(query))
+                            );
+                          }
+                          
+                          return false;
+                        }).map((bill) => {
+                          const detail = billDetails[bill.id];
+
+                          return (
+                            <Fragment key={bill.id}>
+                              <tr>
+                                <td>{bill.id.slice(0, 8)}...</td>
+                                <td>{bill.customer || "Walk-in"}</td>
+                                <td className="cell-center">{bill.totalAmount.toFixed(3)}</td>
+                                <td>{new Date(bill.createdAt).toLocaleDateString()}</td>
+                                <td>
+                                  <div className="btn-group">
+                                    <a href={`/print/${bill.id}`} className="btn btn-sm btn-primary">
+                                      <Icons.Printer className="btn-icon-sm" />
+                                      <span>Print</span>
+                                    </a>
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-danger"
+                                      onClick={() => handleDeleteBill(bill.id)}
+                                    >
+                                      <Icons.Trash className="btn-icon-sm" />
+                                      <span>Remove</span>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td colSpan={5}>
+                                  {detail ? (
+                                    <div className="table-container line-items-table-container">
+                                      <table className="table bill-items-table bill-items-table-readonly">
+                                        <thead>
+                                          <tr>
+                                            <th style={{ width: "120px" }}>Item No</th>
+                                            <th>Item Name</th>
+                                            <th className="cell-center">Unit</th>
+                                            <th className="cell-center">Qty</th>
+                                            <th className="cell-center">Unit Price (KWD)</th>
+                                            <th className="cell-center">Discount/Unit</th>
+                                            <th className="cell-center">Subtotal</th>
+                                            <th className="cell-center">Profit (KWD)</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {detail.items.map((item) => {
+                                            const lineSubtotal = item.unitPrice * item.quantity;
+                                            const lineProfit = getLineProfit(item);
+
+                                            return (
+                                              <tr key={`${bill.id}-${item.itemId}`}>
+                                                <td><span className="item-id">{item.itemId}</span></td>
+                                                <td>
+                                                  <div>
+                                                    <div>{item.itemName}</div>
+                                                    {item.arabicName && (
+                                                      <div className="text-muted" dir="rtl">{item.arabicName}</div>
+                                                    )}
+                                                  </div>
+                                                </td>
+                                                <td className="cell-center">{item.unit}</td>
+                                                <td className="cell-center">{item.quantity}</td>
+                                                <td className="cell-center">{item.unitPrice.toFixed(3)}</td>
+                                                <td className="cell-center">{getDiscountPerUnit(item).toFixed(3)}</td>
+                                                <td className="cell-center">{lineSubtotal.toFixed(3)}</td>
+                                                <td className="cell-center">{lineProfit === null ? "—" : lineProfit.toFixed(3)}</td>
+                                              </tr>
+                                            );
+                                          })}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  ) : (
+                                    <p className="notice">Loading bill items...</p>
+                                  )}
+                                </td>
+                              </tr>
+                            </Fragment>
+                          );
+                        })}
                       </tbody>
                     </table>
+                    {bills.filter((bill) => {
+                      if (!billSearchQuery.trim()) return true;
+                      const query = billSearchQuery.toLowerCase();
+                      const detail = billDetails[bill.id];
+                      if (bill.id.toLowerCase().includes(query)) return true;
+                      if (bill.customer && bill.customer.toLowerCase().includes(query)) return true;
+                      if (detail) {
+                        return detail.items.some(item => 
+                          item.itemName.toLowerCase().includes(query) ||
+                          item.itemId.toLowerCase().includes(query) ||
+                          (item.arabicName && item.arabicName.includes(query))
+                        );
+                      }
+                      return false;
+                    }).length === 0 && (
+                      <p className="notice">No bills found matching "{billSearchQuery}"</p>
+                    )}
                   </div>
-                )}
+                </>
+              )}
               </div>
           </div>
         </div>

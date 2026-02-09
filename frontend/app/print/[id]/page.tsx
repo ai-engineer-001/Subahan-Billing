@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import Spinner from "../../../../components/Spinner";
+import Spinner from "../../../components/Spinner";
 import { apiFetch } from "../../../lib/api";
 
 type BillItem = {
@@ -10,6 +10,7 @@ type BillItem = {
   arabicName: string;
   unit: string;
   quantity: number;
+  buyingPrice?: number | null;
   unitPrice: number;
   baseSellingPrice: number;
 };
@@ -209,6 +210,7 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
           color: #2c1810;
           text-align: center;
           word-break: break-word;
+          font-variant-numeric: tabular-nums;
         }
 
         .invoice-table td.text-left {
@@ -246,25 +248,9 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
           color: #5c4033;
         }
 
-        .price-cell {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 5px;
-        }
-
-        .price-cell .fils {
-          flex: 0 0 50px;
-          text-align: right;
-          color: #5c4033;
-          font-size: 11px;
-        }
-
-        .price-cell .kd {
-          flex: 1;
-          text-align: right;
-          font-weight: 600;
-          color: #2c1810;
+        .num-cell {
+          text-align: center;
+          font-variant-numeric: tabular-nums;
         }
 
         .total-section {
@@ -468,20 +454,22 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
           <thead>
             <tr>
               <th style={{ width: '8%' }}>رقم الصنف<br/>Item No.</th>
-              <th className="text-left" style={{ width: '32%' }}>تفاصيل البضاعة<br/>Description</th>
-              <th style={{ width: '10%' }}>الوحدة<br/>Unit</th>
-              <th style={{ width: '8%' }}>الكمية<br/>Qty.</th>
-              <th style={{ width: '10%' }}>قبس<br/>Fils</th>
-              <th style={{ width: '12%' }}>دينار K.D.<br/>Unit Price</th>
-              <th style={{ width: '10%' }}>قبس<br/>Fils</th>
-              <th style={{ width: '10%' }}>الإجمالي<br/>Total K.D.</th>
+              <th className="text-left" style={{ width: '30%' }}>تفاصيل البضاعة<br/>Description</th>
+              <th style={{ width: '8%' }}>الوحدة<br/>Unit</th>
+              <th style={{ width: '7%' }}>الكمية<br/>Qty.</th>
+              <th style={{ width: '12%' }}>سعر الوحدة<br/>Unit Price (KWD)</th>
+              <th style={{ width: '12%' }}>خصم/وحدة<br/>Discount /Unit</th>
+              <th style={{ width: '12%' }}>الإجمالي<br/>Subtotal (KWD)</th>
+              <th style={{ width: '11%' }}>الربح<br/>Profit (KWD)</th>
             </tr>
           </thead>
           <tbody>
             {bill.items.map((item, idx) => {
+              const discountPerUnit = Math.max(0, item.baseSellingPrice - item.unitPrice);
               const lineTotal = item.unitPrice * item.quantity;
-              const unitPriceFils = Math.round((item.unitPrice % 1) * 1000);
-              const totalFils = Math.round((lineTotal % 1) * 1000);
+              const lineProfit = item.buyingPrice != null
+                ? (item.unitPrice - item.buyingPrice) * item.quantity
+                : null;
 
               return (
                 <tr key={idx}>
@@ -491,11 +479,11 @@ export default function PrintPage({ params }: { params: Promise<{ id: string }> 
                     {item.arabicName && <span className="item-name-ar">{item.arabicName}</span>}
                   </td>
                   <td><span className="unit-text">{item.unit}</span></td>
-                  <td>{item.quantity}</td>
-                  <td>{unitPriceFils}</td>
-                  <td>{item.unitPrice.toFixed(3)}</td>
-                  <td>{totalFils}</td>
-                  <td>{lineTotal.toFixed(3)}</td>
+                  <td className="num-cell">{item.quantity}</td>
+                  <td className="num-cell">{item.unitPrice.toFixed(3)}</td>
+                  <td className="num-cell">{discountPerUnit.toFixed(3)}</td>
+                  <td className="num-cell">{lineTotal.toFixed(3)}</td>
+                  <td className="num-cell">{lineProfit === null ? "—" : lineProfit.toFixed(3)}</td>
                 </tr>
               );
             })}

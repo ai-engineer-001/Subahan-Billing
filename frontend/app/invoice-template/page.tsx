@@ -15,6 +15,8 @@ const invoice = {
   amountInWordsAr: "خمسة آلاف وواحد وسبعون دينارا كويتيا وأربعمائة وثمانون فلسا",
 };
 
+const totalKwd = `${invoice.totalKd}.${String(invoice.totalFils).padStart(3, "0")}`;
+
 const showroomListEn = [
   "Showroom 1 - Hawally - Tel: 22621488",
   "Showroom 2 - Shuwaikh - Tel: 22613062",
@@ -91,18 +93,14 @@ export default function InvoiceTemplatePage() {
         <table className="invoice-table">
           <thead>
             <tr>
-              <th rowSpan={2} className="col-item">Item No.</th>
-              <th rowSpan={2} className="col-desc">Description</th>
-              <th rowSpan={2} className="col-unit">Unit</th>
-              <th rowSpan={2} className="col-qty">Qty.</th>
-              <th colSpan={2} className="col-price">Unit Price</th>
-              <th colSpan={2} className="col-total">Total</th>
-            </tr>
-            <tr>
-              <th className="col-kd">K.D.</th>
-              <th className="col-fils">Fils</th>
-              <th className="col-kd">K.D.</th>
-              <th className="col-fils">Fils</th>
+              <th className="col-item">Item No.</th>
+              <th className="col-desc">Description</th>
+              <th className="col-unit">Unit</th>
+              <th className="col-qty">Qty.</th>
+              <th className="col-price">Unit Price (KWD)</th>
+              <th className="col-discount">Discount/Unit</th>
+              <th className="col-subtotal">Subtotal (KWD)</th>
+              <th className="col-profit">Profit (KWD)</th>
             </tr>
           </thead>
           <tbody>
@@ -121,9 +119,9 @@ export default function InvoiceTemplatePage() {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={6} className="total-label">Total K.D.</td>
-              <td className="col-kd">{invoice.totalKd}</td>
-              <td className="col-fils">{invoice.totalFils}</td>
+              <td colSpan={6} className="total-label">Total KWD</td>
+              <td className="col-subtotal">{totalKwd}</td>
+              <td className="col-profit">&nbsp;</td>
             </tr>
           </tfoot>
         </table>

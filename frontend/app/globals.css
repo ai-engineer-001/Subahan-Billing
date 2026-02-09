@@ -162,6 +162,9 @@ html, body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 body {
@@ -599,6 +602,15 @@ body {
 
 .bill-items-table {
   min-width: 1000px;
+}
+
+.bill-items-table-readonly {
+  min-width: 900px;
+  table-layout: fixed;
+}
+
+.bill-items-table-readonly td {
+  font-variant-numeric: tabular-nums;
 }
 
 .line-items-table-container {
@@ -1189,6 +1201,14 @@ button:disabled, .btn:disabled {
   font-size: 14px;
 }
 
+.cell-center {
+  text-align: center;
+}
+
+.cell-right {
+  text-align: right;
+}
+
 .table tbody tr:hover {
   background: var(--bg-tertiary);
 }
@@ -1283,12 +1303,34 @@ button:disabled, .btn:disabled {
 }
 
 /* ==========================================
-   LOADING STATES
-   ========================================== */
+  LOGIN PAGE
+  ========================================== */
+
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0066ff 0%, #4d94ff 100%);
+  padding: var(--space-6);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+/* ==========================================
+  LOADING STATES
+  ========================================== */
 
 /* Legacy .spinner-large kept for backwards compatibility
-   — prefer using the SVG-based `.spinner-svg` component for crisp,
-   accessible, and consistent loaders across the app. */
+  — prefer using the SVG-based `.spinner-svg` component for crisp,
+  accessible, and consistent loaders across the app. */
 
 .login-header {
   padding: var(--space-10) var(--space-8) var(--space-6);
@@ -1436,6 +1478,237 @@ button:disabled, .btn:disabled {
     width: 34px;
     height: 34px;
     padding: 6px;
+  }
+
+  /* Mobile table improvements */
+  .table-container {
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-md);
+  }
+
+  .table {
+    font-size: 13px;
+  }
+
+  .table th,
+  .table td {
+    padding: var(--space-2) var(--space-3);
+    white-space: nowrap;
+  }
+
+  /* Mobile button improvements */
+  .btn {
+    font-size: 13px;
+    padding: var(--space-2) var(--space-3);
+    min-height: 44px; /* iOS touch target */
+  }
+
+  .btn-sm {
+    font-size: 12px;
+    padding: 6px 10px;
+    min-height: 36px;
+  }
+
+  .btn-group {
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .btn-icon-sm {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Mobile form improvements */
+  input, select, textarea {
+    font-size: 16px; /* Prevents iOS zoom */
+    min-height: 44px;
+  }
+
+  /* Card improvements */
+  .card {
+    border-radius: var(--radius-md);
+  }
+
+  .card-header {
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: flex-start;
+  }
+
+  .card-title-group {
+    width: 100%;
+  }
+
+  .segmented-toggle {
+    width: 100%;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .segmented-option {
+    width: 100%;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+  }
+
+  .segmented-option.active {
+    border-color: var(--primary);
+  }
+
+  /* Bill items table mobile */
+  .bill-items-table {
+    min-width: 800px;
+    font-size: 12px;
+  }
+
+  .bill-items-table-readonly {
+    min-width: 700px;
+    font-size: 11px;
+  }
+
+  .bill-items-table th,
+  .bill-items-table td {
+    padding: var(--space-2);
+  }
+
+  .bill-items-table input {
+    font-size: 14px;
+    padding: var(--space-2);
+  }
+
+  /* Grid layout improvements */
+  .grid {
+    padding: var(--space-3);
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Item search dropdown */
+  .item-search-list {
+    max-height: 200px;
+  }
+
+  /* Mobile-friendly spacing */
+  .card-section {
+    margin-top: var(--space-4);
+  }
+
+  .form-group {
+    margin-bottom: var(--space-4);
+  }
+
+  /* Bill total display */
+  .bill-total {
+    font-size: 14px;
+  }
+
+  .bill-total-amount {
+    font-size: 16px;
+  }
+
+  /* Login page mobile */
+  .login-container {
+    padding: var(--space-4);
+  }
+
+  .login-card {
+    max-width: 100%;
+  }
+
+  .login-header {
+    padding: var(--space-6) var(--space-4) var(--space-4);
+  }
+
+  .login-logo {
+    width: 60px;
+    height: 60px;
+    margin-bottom: var(--space-4);
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .login-title {
+    font-size: 22px;
+  }
+
+  .login-subtitle {
+    font-size: 13px;
+  }
+
+  .login-form {
+    padding: var(--space-5);
+  }
+
+  .login-footer {
+    padding: var(--space-3);
+    font-size: 12px;
+  }
+}
+
+/* Smaller mobile devices (iPhone SE, etc.) */
+@media (max-width: 400px) {
+  .btn span {
+    display: none;
+  }
+
+  .btn-icon,
+  .btn-icon-sm {
+    margin: 0;
+  }
+
+  .card-header {
+    padding: var(--space-3);
+  }
+
+  .card-body {
+    padding: var(--space-4);
+  }
+
+  .table th,
+  .table td {
+    font-size: 12px;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .bill-items-table {
+    min-width: 600px;
+  }
+
+  .bill-items-table-readonly {
+    min-width: 500px;
+  }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    -webkit-appearance: none;
+    border-radius: var(--radius-md);
+  }
+
+  /* Fix iOS input zoom */
+  input:focus,
+  select:focus,
+  textarea:focus {
+    font-size: 16px;
+  }
+
+  /* Smooth scrolling for iOS */
+  .table-container,
+  .line-items-table-container,
+  .items-table-container {
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -1649,6 +1922,7 @@ button:disabled, .btn:disabled {
   font-size: 11px;
   position: relative;
   z-index: 1;
+  table-layout: fixed;
 }
 
 .invoice-table th,
@@ -1656,6 +1930,7 @@ button:disabled, .btn:disabled {
   border: 1px solid black;
   padding: 4px 6px;
   text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .invoice-table thead th {
@@ -1671,7 +1946,7 @@ button:disabled, .btn:disabled {
 }
 
 .col-desc {
-  width: 38%;
+  width: 30%;
   text-align: left;
 }
 
@@ -1680,15 +1955,23 @@ button:disabled, .btn:disabled {
 }
 
 .col-qty {
-  width: 8%;
-}
-
-.col-kd {
-  width: 8%;
-}
-
-.col-fils {
   width: 6%;
+}
+
+.col-price {
+  width: 12%;
+}
+
+.col-discount {
+  width: 12%;
+}
+
+.col-subtotal {
+  width: 12%;
+}
+
+.col-profit {
+  width: 10%;
 }
 
 .total-label {
