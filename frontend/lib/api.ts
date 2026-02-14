@@ -90,8 +90,27 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const body = (await response.json()) as ApiError;
-      throw new Error(body?.error || "Request failed");
+      let errorMessage = "Request failed";
+      try {
+        const body = (await response.json()) as ApiError;
+        errorMessage = body?.error || errorMessage;
+      } catch {
+        // Ignore JSON parse errors and keep fallback message.
+      }
+
+      if (response.status === 401) {
+        if (path.startsWith("/auth/login")) {
+          throw new Error(errorMessage || "Invalid username or password.");
+        }
+
+        clearAuth();
+        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+        throw new Error("Session expired. Please login again.");
+      }
+
+      throw new Error(errorMessage);
     }
 
     return (await response.json()) as T;

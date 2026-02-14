@@ -14,6 +14,9 @@ type Item = {
   buyingPrice?: number | null;
   sellingPrice: number;
   unit: string;
+  isWireBox: boolean;
+  purchasePercentage?: number | null;
+  sellPercentage?: number | null;
 };
 
 type Bill = {
@@ -391,9 +394,20 @@ export default function BillsPage() {
                             const selectedItem = items.find((item) => item.itemId === line.itemId);
                             const effectiveUnitPrice = getEffectiveUnitPrice(line);
                             const lineSubtotal = getLineSubtotal(line);
-                            const lineProfit = selectedItem?.buyingPrice && effectiveUnitPrice > 0
-                              ? (effectiveUnitPrice - selectedItem.buyingPrice) * line.quantity
-                              : null;
+                            
+                            // Calculate profit based on item type
+                            let lineProfit: number | null = null;
+                            if (selectedItem?.buyingPrice && effectiveUnitPrice > 0) {
+                              let actualPurchaseCost = selectedItem.buyingPrice;
+                              
+                              // For Wire/Box items, calculate actual purchase cost using discount percentage
+                              if (selectedItem.isWireBox && selectedItem.purchasePercentage != null) {
+                                // Actual cost = base × (1 - purchase%)
+                                actualPurchaseCost = selectedItem.buyingPrice * (1 - selectedItem.purchasePercentage / 100);
+                              }
+                              
+                              lineProfit = (effectiveUnitPrice - actualPurchaseCost) * line.quantity;
+                            }
 
                             const query = line.searchTerm.trim().toLowerCase();
                             const filteredItems = !line.itemId && query
@@ -425,6 +439,32 @@ export default function BillsPage() {
                                       onFocus={() => setActiveSearchIndex(index)}
                                       placeholder="Type to search item..."
                                     />
+                                    {selectedItem && selectedItem.isWireBox && (
+                                      <div style={{ 
+                                        fontSize: "11px", 
+                                        color: "var(--text-secondary)", 
+                                        marginTop: "4px",
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: "8px",
+                                        alignItems: "center"
+                                      }}>
+                                        <span style={{ 
+                                          padding: "2px 6px", 
+                                          backgroundColor: "var(--info)", 
+                                          color: "white", 
+                                          borderRadius: "4px",
+                                          fontWeight: "500"
+                                        }}>
+                                          Wire/Box
+                                        </span>
+                                        <span>
+                                          Base: {selectedItem.buyingPrice?.toFixed(3)} KWD • 
+                                          P%: {selectedItem.purchasePercentage?.toFixed(2)}% (Cost: {selectedItem.buyingPrice && selectedItem.purchasePercentage ? (selectedItem.buyingPrice * (1 - selectedItem.purchasePercentage / 100)).toFixed(3) : '—'}) • 
+                                          S%: {selectedItem.sellPercentage?.toFixed(2)}%
+                                        </span>
+                                      </div>
+                                    )}
                                     {activeSearchIndex === index && filteredItems.length > 0 && (
                                       <div className="item-search-list">
                                         {filteredItems.map((item) => (
@@ -435,7 +475,29 @@ export default function BillsPage() {
                                             onClick={() => handleSelectItem(index, item.itemId)}
                                           >
                                             <span className="item-search-id">{item.itemId}</span>
-                                            <span className="item-search-name">{item.name}</span>
+                                            <span className="item-search-name">
+                                              {item.name}
+                                              {item.isWireBox && (
+                                                <span style={{ 
+                                                  marginLeft: "8px", 
+                                                  fontSize: "11px", 
+                                                  padding: "2px 6px", 
+                                                  backgroundColor: "var(--info)", 
+                                                  color: "white", 
+                                                  borderRadius: "4px",
+                                                  fontWeight: "500"
+                                                }}>
+                                                  Wire/Box
+                                                </span>
+                                              )}
+                                            </span>
+                                            {item.isWireBox && (
+                                              <span style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "4px" }}>
+                                                Base: {item.buyingPrice?.toFixed(3)} KWD • 
+                                                P%: {item.purchasePercentage?.toFixed(2)}% (Cost: {item.buyingPrice && item.purchasePercentage ? (item.buyingPrice * (1 - item.purchasePercentage / 100)).toFixed(3) : '—'}) • 
+                                                S%: {item.sellPercentage?.toFixed(2)}%
+                                              </span>
+                                            )}
                                           </button>
                                         ))}
                                       </div>

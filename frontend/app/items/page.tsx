@@ -14,6 +14,9 @@ type Item = {
   buyingPrice?: number | null;
   sellingPrice: number;
   unit: string;
+  isWireBox: boolean;
+  purchasePercentage?: number | null;
+  sellPercentage?: number | null;
   deletedAt?: string | null;
 };
 
@@ -23,7 +26,10 @@ const emptyForm = {
   arabicName: "",
   buyingPrice: "",
   sellingPrice: "",
-  unit: "pcs"
+  unit: "pcs",
+  isWireBox: false,
+  purchasePercentage: "",
+  sellPercentage: ""
 };
 
 type TabType = "active" | "trash";
@@ -48,6 +54,7 @@ export default function ItemsPage() {
   const transliterationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const itemsRef = useRef<Item[]>([]);
   const inputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const modalBodyRef = useRef<HTMLDivElement | null>(null);
   const hasMoreRef = useRef(true);
   const loadingMoreRef = useRef(false);
 
@@ -137,7 +144,8 @@ export default function ItemsPage() {
     setForm(prev => ({ ...prev, [field]: value }));
     
     // Restore cursor position after state update (Safari fix)
-    if (input) {
+    // Only works for text inputs, not number inputs
+    if (input && input.type === 'text') {
       setTimeout(() => {
         input.setSelectionRange(cursorPosition, cursorPosition);
       }, 0);
@@ -198,8 +206,9 @@ export default function ItemsPage() {
 
     const trimmedId = form.itemId.trim();
     const trimmedName = form.name.trim();
-    const sellingValue = Number(form.sellingPrice);
+    
     if (!editingId) {
+      // For new items, require verification first
       if (!trimmedId) {
         setStatus("Item ID is required");
         return;
@@ -212,7 +221,20 @@ export default function ItemsPage() {
         setStatus("Item ID must contain only letters and numbers");
         return;
       }
+      
+      // Check if verification was done
+      if (idCheckKind !== "success") {
+        setStatus("Please verify the Item ID first by clicking the 'Verify' button");
+        setIdCheckMessage("Click 'Verify' to check if the Item ID is available");
+        setIdCheckKind("error");
+        // Scroll to top of modal to show the error
+        if (modalBodyRef.current) {
+          modalBodyRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        return;
+      }
     }
+    
     if (!trimmedName) {
       setStatus("Item name is required");
       return;
@@ -221,28 +243,58 @@ export default function ItemsPage() {
       setStatus("Arabic name is required");
       return;
     }
-    if (!Number.isFinite(sellingValue) || sellingValue <= 0) {
-      setStatus("Selling price must be positive");
-      return;
+
+    // Validate based on mode
+    if (form.isWireBox) {
+      const purchasePrice = Number(form.buyingPrice);
+      const purchasePct = Number(form.purchasePercentage);
+      const sellPct = Number(form.sellPercentage);
+      
+      if (!Number.isFinite(purchasePrice) || purchasePrice <= 0) {
+        setStatus("Purchase Price is required and must be positive for Wire/Box items");
+        return;
+      }
+      if (!Number.isFinite(purchasePct) || purchasePct < 0 || purchasePct > 100) {
+        setStatus("Purchase % must be between 0 and 100");
+        return;
+      }
+      if (!Number.isFinite(sellPct) || sellPct < 0 || sellPct > 100) {
+        setStatus("Sell % must be between 0 and 100");
+        return;
+      }
+    } else {
+      const purchasePrice = Number(form.buyingPrice);
+      const sellingPrice = Number(form.sellingPrice);
+      
+      if (!Number.isFinite(purchasePrice) || purchasePrice <= 0) {
+        setStatus("Purchase Price is required and must be positive");
+        return;
+      }
+      if (!Number.isFinite(sellingPrice) || sellingPrice <= 0) {
+        setStatus("Selling Price is required and must be positive");
+        return;
+      }
     }
 
     setLoading(true);
     
     try {
-      const payload: {
-        itemId?: string;
-        name: string;
-        arabicName: string;
-        buyingPrice: number | null;
-        sellingPrice: number;
-        unit: string;
-      } = {
+      const payload: any = {
         name: trimmedName,
         arabicName: form.arabicName.trim(),
-        buyingPrice: form.buyingPrice ? Number(form.buyingPrice) : null,
-        sellingPrice: sellingValue,
-        unit: form.unit || "pcs"
+        unit: form.unit || "pcs",
+        isWireBox: form.isWireBox,
+        buyingPrice: Number(form.buyingPrice)
       };
+
+      if (form.isWireBox) {
+        payload.purchasePercentage = Number(form.purchasePercentage);
+        payload.sellPercentage = Number(form.sellPercentage);
+        // Backend will calculate sellingPrice, but we need to send 0 to satisfy the struct
+        payload.sellingPrice = 0;
+      } else {
+        payload.sellingPrice = Number(form.sellingPrice);
+      }
 
       if (editingId) {
         payload.itemId = form.itemId.trim();
@@ -283,7 +335,10 @@ export default function ItemsPage() {
       arabicName: item.arabicName || "",
       buyingPrice: item.buyingPrice?.toString() ?? "",
       sellingPrice: item.sellingPrice.toString(),
-      unit: item.unit || "pcs"
+      unit: item.unit || "pcs",
+      isWireBox: item.isWireBox,
+      purchasePercentage: item.purchasePercentage?.toString() ?? "",
+      sellPercentage: item.sellPercentage?.toString() ?? ""
     });
     setIdCheckMessage(null);
     setIdCheckKind(null);
@@ -361,23 +416,23 @@ export default function ItemsPage() {
     setIdCheckKind(null);
 
     try {
-      const item = await apiFetch<Item>(`/items/${encodeURIComponent(trimmedId)}`);
-      if (editingId && item.itemId === editingId) {
+      const allItems = await apiFetch<Item[]>("/items?includeDeleted=true&limit=1000&offset=0");
+      const existing = allItems.find((item) => item.itemId.toLowerCase() === trimmedId.toLowerCase());
+
+      if (!existing) {
+        setIdCheckMessage("Item ID is available");
+        setIdCheckKind("success");
+      } else if (editingId && existing.itemId === editingId) {
         setIdCheckMessage("Item ID is valid");
         setIdCheckKind("success");
       } else {
-        setIdCheckMessage(`Item exists with same id and ${item.name}.`);
+        setIdCheckMessage(`Item exists with same id and ${existing.name}.`);
         setIdCheckKind("error");
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
-      if (message.toLowerCase().includes("not found")) {
-        setIdCheckMessage("Item ID is available");
-        setIdCheckKind("success");
-      } else {
-        setIdCheckMessage(message || "Unable to verify Item ID");
-        setIdCheckKind("error");
-      }
+      setIdCheckMessage(message || "Unable to verify Item ID");
+      setIdCheckKind("error");
     } finally {
       setVerifying(false);
     }
@@ -476,7 +531,7 @@ export default function ItemsPage() {
                           <th>Item ID</th>
                           <th>Name</th>
                           <th>Unit</th>
-                          <th>Buying</th>
+                          <th>Purchase</th>
                           <th>Selling</th>
                           <th>Actions</th>
                         </tr>
@@ -494,14 +549,24 @@ export default function ItemsPage() {
                               <span className="badge">{item.unit}</span>
                             </td>
                             <td>
-                              {item.buyingPrice ? (
+                              {item.isWireBox ? (
+                                <span className="badge" style={{ backgroundColor: "var(--info)", color: "white" }}>
+                                  {item.purchasePercentage?.toFixed(2)}%
+                                </span>
+                              ) : item.buyingPrice ? (
                                 <span className="price">{item.buyingPrice.toFixed(3)} KWD</span>
                               ) : (
                                 <span className="text-muted">—</span>
                               )}
                             </td>
                             <td>
-                              <span className="price primary">{item.sellingPrice.toFixed(3)} KWD</span>
+                              {item.isWireBox ? (
+                                <span className="badge" style={{ backgroundColor: "var(--success)", color: "white" }}>
+                                  {item.sellPercentage?.toFixed(2)}%
+                                </span>
+                              ) : (
+                                <span className="price primary">{item.sellingPrice.toFixed(3)} KWD</span>
+                              )}
                             </td>
                             <td>
                               <div className="btn-group">
@@ -641,7 +706,7 @@ export default function ItemsPage() {
                 </button>
               </div>
 
-              <div className="modal-body">
+              <div className="modal-body" ref={modalBodyRef}>
                 <form onSubmit={handleSubmit}>
                   <div className="form-group">
                     <label className="form-label">
@@ -651,7 +716,7 @@ export default function ItemsPage() {
                     <div className="input-with-action">
                       <input
                         type="text"
-                        value={form.itemId}
+                        value={form.itemId || ""}
                         maxLength={100}
                         ref={(el) => { inputRefs.current['itemId'] = el; }}
                         onChange={(e) => {
@@ -691,7 +756,7 @@ export default function ItemsPage() {
                       </label>
                       <input
                         type="text"
-                        value={form.name}
+                        value={form.name || ""}
                         ref={(el) => { inputRefs.current['name'] = el; }}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         onBlur={handleNameBlur}
@@ -723,7 +788,7 @@ export default function ItemsPage() {
                       <span>Unit Type</span>
                     </label>
                     <select
-                      value={form.unit}
+                      value={form.unit || "pcs"}
                       onChange={(e) => setForm({ ...form, unit: e.target.value })}
                     >
                       <option value="pcs">Pieces (pcs)</option>
@@ -736,38 +801,152 @@ export default function ItemsPage() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">
-                      <Icons.DollarSign className="label-icon" />
-                      <span>Buying Price (Optional)</span>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={form.isWireBox}
+                        onChange={(e) => setForm({ ...form, isWireBox: e.target.checked })}
+                        style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                      />
+                      <span style={{ fontWeight: 500 }}>Wire/Box Item</span>
                     </label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={form.buyingPrice || ""}
-                      ref={(el) => { inputRefs.current['buyingPrice'] = el; }}
-                      onChange={(e) => handleInputChange('buyingPrice', e.target.value)}
-                      placeholder="0.000 KWD"
-                    />
                     <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
-                      Leave empty if not applicable
+                      Check this if the item uses percentage-based pricing instead of fixed prices
                     </p>
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">
-                      <Icons.TrendingUp className="label-icon" />
-                      <span>Selling Price (Required)</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={form.sellingPrice || ""}
-                      ref={(el) => { inputRefs.current['sellingPrice'] = el; }}
-                      onChange={(e) => handleInputChange('sellingPrice', e.target.value)}
-                      placeholder="0.000 KWD"
-                      required
-                    />
-                  </div>
+                  {form.isWireBox ? (
+                    <>
+                      <div className="form-group">
+                        <label className="form-label">
+                          <Icons.DollarSign className="label-icon" />
+                          <span>Purchase Price (Required)</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={form.buyingPrice || ""}
+                          ref={(el) => { inputRefs.current['buyingPrice'] = el; }}
+                          onChange={(e) => handleInputChange('buyingPrice', e.target.value)}
+                          placeholder="0.000 KWD"
+                          required
+                        />
+                        <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                          Base purchase price (cost per unit) on which percentages apply
+                        </p>
+                      </div>
+
+                      <div className="form-grid">
+                        <div className="form-group">
+                          <label className="form-label">
+                            <Icons.TrendingUp className="label-icon" />
+                            <span>Purchase % (Required)</span>
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            value={form.purchasePercentage || ""}
+                            ref={(el) => { inputRefs.current['purchasePercentage'] = el; }}
+                            onChange={(e) => handleInputChange('purchasePercentage', e.target.value)}
+                            placeholder="0.00"
+                            required
+                          />
+                          <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                            Discount percentage from base price (e.g., 9% means buy at 9% off)
+                          </p>
+                        </div>
+
+                        <div className="form-group">
+                          <label className="form-label">
+                            <Icons.TrendingUp className="label-icon" />
+                            <span>Sell % (Required)</span>
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            value={form.sellPercentage || ""}
+                            ref={(el) => { inputRefs.current['sellPercentage'] = el; }}
+                            onChange={(e) => handleInputChange('sellPercentage', e.target.value)}
+                            placeholder="0.00"
+                            required
+                          />
+                          <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                            Discount percentage from base price (e.g., 8% means sell at 8% off)
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Calculated Selling Price Preview */}
+                      {form.buyingPrice && form.sellPercentage && (
+                        <div style={{ 
+                          padding: "var(--space-3)", 
+                          backgroundColor: "var(--success-bg)", 
+                          borderRadius: "var(--radius-md)",
+                          marginTop: "var(--space-3)",
+                          border: "1px solid var(--success)"
+                        }}>
+                          <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "var(--space-2)" }}>
+                            <strong>Calculation:</strong>
+                            <br />
+                            • Actual Purchase Cost = {form.buyingPrice} × (1 - {form.purchasePercentage || 0}%) = {(Number(form.buyingPrice) * (1 - Number(form.purchasePercentage || 0) / 100)).toFixed(3)} KWD
+                            <br />
+                            • Selling Price = {form.buyingPrice} × (1 - {form.sellPercentage}%) = {(Number(form.buyingPrice) * (1 - Number(form.sellPercentage) / 100)).toFixed(3)} KWD
+                            <br />
+                            • Profit = {((Number(form.buyingPrice) * (1 - Number(form.sellPercentage) / 100)) - (Number(form.buyingPrice) * (1 - Number(form.purchasePercentage || 0) / 100))).toFixed(3)} KWD
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "var(--space-2)", borderTop: "1px solid var(--border-color)" }}>
+                            <span style={{ fontWeight: "500", color: "var(--text-primary)" }}>
+                              Final Selling Price:
+                            </span>
+                            <span style={{ fontSize: "18px", fontWeight: "600", color: "var(--success)" }}>
+                              {(Number(form.buyingPrice) * (1 - Number(form.sellPercentage) / 100)).toFixed(3)} KWD
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="form-group">
+                        <label className="form-label">
+                          <Icons.DollarSign className="label-icon" />
+                          <span>Purchase Price (Required)</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={form.buyingPrice || ""}
+                          ref={(el) => { inputRefs.current['buyingPrice'] = el; }}
+                          onChange={(e) => handleInputChange('buyingPrice', e.target.value)}
+                          placeholder="0.000 KWD"
+                          required
+                        />
+                        <p className="notice" style={{ marginTop: "var(--space-2)", textAlign: "left" }}>
+                          Enter the purchase price in KWD
+                        </p>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">
+                          <Icons.TrendingUp className="label-icon" />
+                          <span>Selling Price (Required)</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={form.sellingPrice || ""}
+                          ref={(el) => { inputRefs.current['sellingPrice'] = el; }}
+                          onChange={(e) => handleInputChange('sellingPrice', e.target.value)}
+                          placeholder="0.000 KWD"
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
 
                   <div className="btn-group" style={{ marginTop: "var(--space-6)" }}>
                     <button type="submit" className="btn btn-primary" disabled={loading} style={{ flex: 1 }}>

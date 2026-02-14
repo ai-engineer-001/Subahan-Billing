@@ -75,10 +75,43 @@ func (s *Server) handleCreateItem(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "arabicName is required")
 		return
 	}
-	if input.SellingPrice <= 0 {
-		writeError(w, http.StatusBadRequest, "sellingPrice must be positive")
-		return
+	
+	// Validate based on Wire/Box mode
+	if input.IsWireBox {
+		// Wire/Box mode: base purchase price and percentages are required
+		if input.BuyingPrice == nil || *input.BuyingPrice <= 0 {
+			writeError(w, http.StatusBadRequest, "buyingPrice (base purchase price) is required for Wire/Box items")
+			return
+		}
+		if input.PurchasePercentage == nil || *input.PurchasePercentage < 0 || *input.PurchasePercentage > 100 {
+			writeError(w, http.StatusBadRequest, "purchasePercentage must be between 0 and 100")
+			return
+		}
+		if input.SellPercentage == nil || *input.SellPercentage < 0 || *input.SellPercentage > 100 {
+			writeError(w, http.StatusBadRequest, "sellPercentage must be between 0 and 100")
+			return
+		}
+		// Calculate selling price using discount percentages from base price
+		// buyingPrice = base/reference price (e.g., 1.000 KWD)
+		// Selling price = base × (1 - sell%) → e.g., 1.000 × (1 - 0.08) = 0.920 KWD
+		// Actual purchase cost = base × (1 - purchase%) → e.g., 1.000 × (1 - 0.09) = 0.910 KWD
+		// Profit = 0.920 - 0.910 = 0.010 KWD (1% of base)
+		input.SellingPrice = *input.BuyingPrice * (1 - (*input.SellPercentage / 100))
+	} else {
+		// Normal mode: both prices are required
+		if input.BuyingPrice == nil || *input.BuyingPrice <= 0 {
+			writeError(w, http.StatusBadRequest, "buyingPrice is required and must be positive")
+			return
+		}
+		if input.SellingPrice <= 0 {
+			writeError(w, http.StatusBadRequest, "sellingPrice must be positive")
+			return
+		}
+		// Clear percentage fields for normal items
+		input.PurchasePercentage = nil
+		input.SellPercentage = nil
 	}
+	
 	if strings.TrimSpace(input.Unit) == "" {
 		input.Unit = "pcs"
 	}
@@ -109,9 +142,41 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "arabicName is required")
 		return
 	}
-	if input.SellingPrice <= 0 {
-		writeError(w, http.StatusBadRequest, "sellingPrice must be positive")
-		return
+	
+	// Validate based on Wire/Box mode
+	if input.IsWireBox {
+		// Wire/Box mode: base purchase price and percentages are required
+		if input.BuyingPrice == nil || *input.BuyingPrice <= 0 {
+			writeError(w, http.StatusBadRequest, "buyingPrice (base purchase price) is required for Wire/Box items")
+			return
+		}
+		if input.PurchasePercentage == nil || *input.PurchasePercentage < 0 || *input.PurchasePercentage > 100 {
+			writeError(w, http.StatusBadRequest, "purchasePercentage must be between 0 and 100")
+			return
+		}
+		if input.SellPercentage == nil || *input.SellPercentage < 0 || *input.SellPercentage > 100 {
+			writeError(w, http.StatusBadRequest, "sellPercentage must be between 0 and 100")
+			return
+		}
+		// Calculate selling price using discount percentages from base price
+		// buyingPrice = base/reference price (e.g., 1.000 KWD)
+		// Selling price = base × (1 - sell%) → e.g., 1.000 × (1 - 0.08) = 0.920 KWD
+		// Actual purchase cost = base × (1 - purchase%) → e.g., 1.000 × (1 - 0.09) = 0.910 KWD
+		// Profit = 0.920 - 0.910 = 0.010 KWD (1% of base)
+		input.SellingPrice = *input.BuyingPrice * (1 - (*input.SellPercentage / 100))
+	} else {
+		// Normal mode: both prices are required
+		if input.BuyingPrice == nil || *input.BuyingPrice <= 0 {
+			writeError(w, http.StatusBadRequest, "buyingPrice is required and must be positive")
+			return
+		}
+		if input.SellingPrice <= 0 {
+			writeError(w, http.StatusBadRequest, "sellingPrice must be positive")
+			return
+		}
+		// Clear percentage fields for normal items
+		input.PurchasePercentage = nil
+		input.SellPercentage = nil
 	}
 
 	item, err := s.Store.UpdateItem(r.Context(), input)

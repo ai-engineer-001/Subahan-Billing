@@ -22,7 +22,6 @@ export default function HomePage() {
   return (
     <div className="loading-screen">
       <Spinner size={48} />
-      <p>Loading...</p>
     </div>
   );
 }

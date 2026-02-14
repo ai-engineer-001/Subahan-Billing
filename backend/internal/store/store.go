@@ -24,7 +24,7 @@ func New(db *pgxpool.Pool) *Store {
 }
 
 func (s *Store) ListItems(ctx context.Context, includeDeleted bool, limit, offset int) ([]Item, error) {
-	query := "SELECT item_id, name, arabic_name, buying_price, selling_price, unit, created_at, updated_at, deleted_at FROM items"
+	query := "SELECT item_id, name, arabic_name, buying_price, selling_price, unit, is_wire_box, purchase_percentage, sell_percentage, created_at, updated_at, deleted_at FROM items"
 	if !includeDeleted {
 		query += " WHERE deleted_at IS NULL"
 	}
@@ -39,7 +39,7 @@ func (s *Store) ListItems(ctx context.Context, includeDeleted bool, limit, offse
 	items := []Item{}
 	for rows.Next() {
 		var item Item
-		if err := rows.Scan(&item.ItemID, &item.Name, &item.ArabicName, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
+		if err := rows.Scan(&item.ItemID, &item.Name, &item.ArabicName, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.IsWireBox, &item.PurchasePercentage, &item.SellPercentage, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -49,8 +49,8 @@ func (s *Store) ListItems(ctx context.Context, includeDeleted bool, limit, offse
 
 func (s *Store) GetItem(ctx context.Context, itemID string) (Item, error) {
 	var item Item
-	row := s.db.QueryRow(ctx, "SELECT item_id, name, arabic_name, buying_price, selling_price, unit, created_at, updated_at, deleted_at FROM items WHERE item_id=$1", itemID)
-	if err := row.Scan(&item.ItemID, &item.Name, &item.ArabicName, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
+	row := s.db.QueryRow(ctx, "SELECT item_id, name, arabic_name, buying_price, selling_price, unit, is_wire_box, purchase_percentage, sell_percentage, created_at, updated_at, deleted_at FROM items WHERE item_id=$1", itemID)
+	if err := row.Scan(&item.ItemID, &item.Name, &item.ArabicName, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.IsWireBox, &item.PurchasePercentage, &item.SellPercentage, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 		return item, ErrNotFound
 	}
 	return item, nil
@@ -86,10 +86,10 @@ func (s *Store) CreateItem(ctx context.Context, input ItemCreate) (Item, error) 
 		unit = "pcs"
 	}
 	row := tx.QueryRow(ctx,
-		"INSERT INTO items (item_id, name, arabic_name, buying_price, selling_price, unit) VALUES ($1, $2, $3, $4, $5, $6) RETURNING item_id, name, arabic_name, buying_price, selling_price, unit, created_at, updated_at, deleted_at",
-		itemID, input.Name, input.ArabicName, input.BuyingPrice, input.SellingPrice, unit,
+		"INSERT INTO items (item_id, name, arabic_name, buying_price, selling_price, unit, is_wire_box, purchase_percentage, sell_percentage) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING item_id, name, arabic_name, buying_price, selling_price, unit, is_wire_box, purchase_percentage, sell_percentage, created_at, updated_at, deleted_at",
+		itemID, input.Name, input.ArabicName, input.BuyingPrice, input.SellingPrice, unit, input.IsWireBox, input.PurchasePercentage, input.SellPercentage,
 	)
-	if err := row.Scan(&item.ItemID, &item.Name, &item.ArabicName, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
+	if err := row.Scan(&item.ItemID, &item.Name, &item.ArabicName, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.IsWireBox, &item.PurchasePercentage, &item.SellPercentage, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 		return item, err
 	}
 
@@ -134,10 +134,10 @@ func nextItemID(ctx context.Context, tx pgx.Tx) (string, error) {
 func (s *Store) UpdateItem(ctx context.Context, input ItemCreate) (Item, error) {
 	var item Item
 	row := s.db.QueryRow(ctx,
-		"UPDATE items SET name=$2, arabic_name=$3, buying_price=$4, selling_price=$5, unit=$6, updated_at=now() WHERE item_id=$1 AND deleted_at IS NULL RETURNING item_id, name, arabic_name, buying_price, selling_price, unit, created_at, updated_at, deleted_at",
-		input.ItemID, input.Name, input.ArabicName, input.BuyingPrice, input.SellingPrice, input.Unit,
+		"UPDATE items SET name=$2, arabic_name=$3, buying_price=$4, selling_price=$5, unit=$6, is_wire_box=$7, purchase_percentage=$8, sell_percentage=$9, updated_at=now() WHERE item_id=$1 AND deleted_at IS NULL RETURNING item_id, name, arabic_name, buying_price, selling_price, unit, is_wire_box, purchase_percentage, sell_percentage, created_at, updated_at, deleted_at",
+		input.ItemID, input.Name, input.ArabicName, input.BuyingPrice, input.SellingPrice, input.Unit, input.IsWireBox, input.PurchasePercentage, input.SellPercentage,
 	)
-	if err := row.Scan(&item.ItemID, &item.Name, &item.ArabicName, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
+	if err := row.Scan(&item.ItemID, &item.Name, &item.ArabicName, &item.BuyingPrice, &item.SellingPrice, &item.Unit, &item.IsWireBox, &item.PurchasePercentage, &item.SellPercentage, &item.CreatedAt, &item.UpdatedAt, &item.DeletedAt); err != nil {
 		return item, ErrNotFound
 	}
 	return item, nil

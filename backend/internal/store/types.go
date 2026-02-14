@@ -3,24 +3,30 @@ package store
 import "time"
 
 type Item struct {
-	ItemID       string     `json:"itemId"`
-	Name         string     `json:"name"`
-	ArabicName   string     `json:"arabicName"`
-	BuyingPrice  *float64   `json:"buyingPrice"`
-	SellingPrice float64    `json:"sellingPrice"`
-	Unit         string     `json:"unit"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
-	DeletedAt    *time.Time `json:"deletedAt"`
+	ItemID              string     `json:"itemId"`
+	Name                string     `json:"name"`
+	ArabicName          string     `json:"arabicName"`
+	BuyingPrice         *float64   `json:"buyingPrice"`
+	SellingPrice        float64    `json:"sellingPrice"`
+	Unit                string     `json:"unit"`
+	IsWireBox           bool       `json:"isWireBox"`
+	PurchasePercentage  *float64   `json:"purchasePercentage"`
+	SellPercentage      *float64   `json:"sellPercentage"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	UpdatedAt           time.Time  `json:"updatedAt"`
+	DeletedAt           *time.Time `json:"deletedAt"`
 }
 
 type ItemCreate struct {
-	ItemID       string   `json:"itemId"`
-	Name         string   `json:"name"`
-	ArabicName   string   `json:"arabicName"`
-	BuyingPrice  *float64 `json:"buyingPrice"`
-	SellingPrice float64  `json:"sellingPrice"`
-	Unit         string   `json:"unit"`
+	ItemID             string   `json:"itemId"`
+	Name               string   `json:"name"`
+	ArabicName         string   `json:"arabicName"`
+	BuyingPrice        *float64 `json:"buyingPrice"`
+	SellingPrice       float64  `json:"sellingPrice"`
+	Unit               string   `json:"unit"`
+	IsWireBox          bool     `json:"isWireBox"`
+	PurchasePercentage *float64 `json:"purchasePercentage"`
+	SellPercentage     *float64 `json:"sellPercentage"`
 }
 
 type Bill struct {
