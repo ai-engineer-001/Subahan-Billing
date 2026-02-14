@@ -108,7 +108,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="brand-logo">
             <div className="brand-icon">S</div>
             <div className="brand-text">
-              <div className="brand-name">Subahan</div>
+              <div className="brand-name">Subhan</div>
               <div className="brand-subtitle">Billing</div>
             </div>
           </div>

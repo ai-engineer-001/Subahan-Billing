@@ -35,7 +35,7 @@ export default function LoginPage() {
           <div className="login-logo">
             <Icons.Building className="logo-icon" />
           </div>
-          <h1 className="login-title">Subahan Billing</h1>
+          <h1 className="login-title">Subhan Billing</h1>
           <p className="login-subtitle">Enterprise Billing Management System</p>
         </div>
 
