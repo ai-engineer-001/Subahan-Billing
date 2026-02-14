@@ -34,7 +34,6 @@ type BillItem = {
   quantity: number;
   buyingPrice?: number | null;
   unitPrice: number;
-  baseSellingPrice: number;
 };
 
 type BillDetail = Bill & {
@@ -44,8 +43,10 @@ type BillDetail = Bill & {
 type LineItem = {
   itemId: string;
   quantity: number;
+  purchasePrice: number | null;
+  purchasePercentage: number | null;
+  sellPercentage: number | null;
   unitPrice: number;
-  discountPerUnit: number;
   searchTerm: string;
 };
 
@@ -58,7 +59,7 @@ export default function BillsPage() {
   const [billDetails, setBillDetails] = useState<Record<string, BillDetail>>({});
   const [customer, setCustomer] = useState("");
   const [lines, setLines] = useState<LineItem[]>([
-    { itemId: "", quantity: 1, unitPrice: 0, discountPerUnit: 0, searchTerm: "" }
+    { itemId: "", quantity: 1, purchasePrice: null, purchasePercentage: null, sellPercentage: null, unitPrice: 0, searchTerm: "" }
   ]);
   const [status, setStatus] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<"create" | "recent">("create");
@@ -223,7 +224,7 @@ export default function BillsPage() {
   }, [activeSearchIndex]);
 
   const addLine = () => {
-    setLines([...lines, { itemId: "", quantity: 1, unitPrice: 0, discountPerUnit: 0, searchTerm: "" }]);
+    setLines([...lines, { itemId: "", quantity: 1, purchasePrice: null, purchasePercentage: null, sellPercentage: null, unitPrice: 0, searchTerm: "" }]);
   };
 
   const updateLine = (index: number, update: Partial<LineItem>) => {
@@ -236,29 +237,48 @@ export default function BillsPage() {
     const item = items.find((entry) => entry.itemId === itemId);
     updateLine(index, {
       itemId,
+      purchasePrice: item?.buyingPrice ?? null,
+      purchasePercentage: item?.purchasePercentage ?? null,
+      sellPercentage: item?.sellPercentage ?? null,
       unitPrice: item ? item.sellingPrice : 0,
-      discountPerUnit: 0,
       searchTerm: ""
     });
     setActiveSearchIndex(null);
   };
 
   const handleSearchChange = (index: number, value: string) => {
-    updateLine(index, { searchTerm: value, itemId: "" });
+    updateLine(index, { searchTerm: value, itemId: "", purchasePrice: null, purchasePercentage: null, sellPercentage: null });
     setActiveSearchIndex(index);
+  };
+
+  const resolveTypedItem = (index: number, value: string) => {
+    const trimmed = value.trim().toLowerCase();
+    if (!trimmed) return;
+
+    const exact = items.find((item) =>
+      item.itemId.toLowerCase() === trimmed || item.name.toLowerCase() === trimmed
+    );
+
+    if (exact) {
+      handleSelectItem(index, exact.itemId);
+    }
   };
 
   const removeLine = (index: number) => {
     if (lines.length <= 1) {
-      setLines([{ itemId: "", quantity: 1, unitPrice: 0, discountPerUnit: 0, searchTerm: "" }]);
+      setLines([{ itemId: "", quantity: 1, purchasePrice: null, purchasePercentage: null, sellPercentage: null, unitPrice: 0, searchTerm: "" }]);
       return;
     }
     setLines(lines.filter((_, i) => i !== index));
   };
 
-  const getEffectiveUnitPrice = (line: LineItem) => Math.max(0, line.unitPrice - line.discountPerUnit);
-  const getLineSubtotal = (line: LineItem) => getEffectiveUnitPrice(line) * line.quantity;
-  const getDiscountPerUnit = (item: BillItem) => Math.max(0, item.baseSellingPrice - item.unitPrice);
+  const getActualPurchaseCost = (line: LineItem) => {
+    if (line.purchasePrice == null) return null;
+    const purchasePct = line.purchasePercentage ?? 0;
+    const discountFactor = 1 - (Math.min(100, Math.max(0, purchasePct)) / 100);
+    return Math.max(0, line.purchasePrice * discountFactor);
+  };
+  const getLineSubtotal = (line: LineItem) => Math.max(0, line.unitPrice) * line.quantity;
   const getLineProfit = (item: BillItem) => item.buyingPrice != null
     ? (item.unitPrice - item.buyingPrice) * item.quantity
     : null;
@@ -273,7 +293,7 @@ export default function BillsPage() {
           .map((line) => ({
             itemId: line.itemId,
             quantity: Number(line.quantity),
-            unitPrice: Number(getEffectiveUnitPrice(line))
+            unitPrice: Number(Math.max(0, line.unitPrice))
           }))
       };
 
@@ -288,7 +308,7 @@ export default function BillsPage() {
       });
 
       setCustomer("");
-      setLines([{ itemId: "", quantity: 1, unitPrice: 0, discountPerUnit: 0, searchTerm: "" }]);
+      setLines([{ itemId: "", quantity: 1, purchasePrice: null, purchasePercentage: null, sellPercentage: null, unitPrice: 0, searchTerm: "" }]);
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(draftKey);
       }
@@ -382,8 +402,10 @@ export default function BillsPage() {
                             <th>Item Name</th>
                             <th className="cell-center">Unit</th>
                             <th className="cell-center">Qty</th>
+                            <th className="cell-right">Purchase Price (KWD)</th>
+                            <th className="cell-right">Purchase %</th>
+                            <th className="cell-right">Selling %</th>
                             <th className="cell-right">Unit Price (KWD)</th>
-                            <th className="cell-right">Discount/Unit</th>
                             <th className="cell-right">Subtotal</th>
                             <th className="cell-right">Profit (KWD)</th>
                             <th></th>
@@ -392,21 +414,15 @@ export default function BillsPage() {
                         <tbody>
                           {lines.map((line, index) => {
                             const selectedItem = items.find((item) => item.itemId === line.itemId);
-                            const effectiveUnitPrice = getEffectiveUnitPrice(line);
                             const lineSubtotal = getLineSubtotal(line);
                             
                             // Calculate profit based on item type
                             let lineProfit: number | null = null;
-                            if (selectedItem?.buyingPrice && effectiveUnitPrice > 0) {
-                              let actualPurchaseCost = selectedItem.buyingPrice;
-                              
-                              // For Wire/Box items, calculate actual purchase cost using discount percentage
-                              if (selectedItem.isWireBox && selectedItem.purchasePercentage != null) {
-                                // Actual cost = base × (1 - purchase%)
-                                actualPurchaseCost = selectedItem.buyingPrice * (1 - selectedItem.purchasePercentage / 100);
+                            if (selectedItem && line.unitPrice > 0) {
+                              const actualPurchaseCost = getActualPurchaseCost(line);
+                              if (actualPurchaseCost != null) {
+                                lineProfit = (line.unitPrice - actualPurchaseCost) * line.quantity;
                               }
-                              
-                              lineProfit = (effectiveUnitPrice - actualPurchaseCost) * line.quantity;
                             }
 
                             const query = line.searchTerm.trim().toLowerCase();
@@ -436,35 +452,16 @@ export default function BillsPage() {
                                       type="text"
                                       value={selectedItem ? selectedItem.name : (line.searchTerm || "")}
                                       onChange={(e) => handleSearchChange(index, e.target.value)}
+                                      onBlur={(e) => resolveTypedItem(index, e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          e.preventDefault();
+                                          resolveTypedItem(index, (e.target as HTMLInputElement).value);
+                                        }
+                                      }}
                                       onFocus={() => setActiveSearchIndex(index)}
                                       placeholder="Type to search item..."
                                     />
-                                    {selectedItem && selectedItem.isWireBox && (
-                                      <div style={{ 
-                                        fontSize: "11px", 
-                                        color: "var(--text-secondary)", 
-                                        marginTop: "4px",
-                                        display: "flex",
-                                        flexWrap: "wrap",
-                                        gap: "8px",
-                                        alignItems: "center"
-                                      }}>
-                                        <span style={{ 
-                                          padding: "2px 6px", 
-                                          backgroundColor: "var(--info)", 
-                                          color: "white", 
-                                          borderRadius: "4px",
-                                          fontWeight: "500"
-                                        }}>
-                                          Wire/Box
-                                        </span>
-                                        <span>
-                                          Base: {selectedItem.buyingPrice?.toFixed(3)} KWD • 
-                                          P%: {selectedItem.purchasePercentage?.toFixed(2)}% (Cost: {selectedItem.buyingPrice && selectedItem.purchasePercentage ? (selectedItem.buyingPrice * (1 - selectedItem.purchasePercentage / 100)).toFixed(3) : '—'}) • 
-                                          S%: {selectedItem.sellPercentage?.toFixed(2)}%
-                                        </span>
-                                      </div>
-                                    )}
                                     {activeSearchIndex === index && filteredItems.length > 0 && (
                                       <div className="item-search-list">
                                         {filteredItems.map((item) => (
@@ -475,29 +472,7 @@ export default function BillsPage() {
                                             onClick={() => handleSelectItem(index, item.itemId)}
                                           >
                                             <span className="item-search-id">{item.itemId}</span>
-                                            <span className="item-search-name">
-                                              {item.name}
-                                              {item.isWireBox && (
-                                                <span style={{ 
-                                                  marginLeft: "8px", 
-                                                  fontSize: "11px", 
-                                                  padding: "2px 6px", 
-                                                  backgroundColor: "var(--info)", 
-                                                  color: "white", 
-                                                  borderRadius: "4px",
-                                                  fontWeight: "500"
-                                                }}>
-                                                  Wire/Box
-                                                </span>
-                                              )}
-                                            </span>
-                                            {item.isWireBox && (
-                                              <span style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "4px" }}>
-                                                Base: {item.buyingPrice?.toFixed(3)} KWD • 
-                                                P%: {item.purchasePercentage?.toFixed(2)}% (Cost: {item.buyingPrice && item.purchasePercentage ? (item.buyingPrice * (1 - item.purchasePercentage / 100)).toFixed(3) : '—'}) • 
-                                                S%: {item.sellPercentage?.toFixed(2)}%
-                                              </span>
-                                            )}
+                                            <span className="item-search-name">{item.name}</span>
                                           </button>
                                         ))}
                                       </div>
@@ -516,6 +491,55 @@ export default function BillsPage() {
                                   />
                                 </td>
                                 <td className="cell-right">
+                                  {line.purchasePrice == null ? (
+                                    <span className="text-muted">-</span>
+                                  ) : (
+                                    <input
+                                      type="number"
+                                      step="0.001"
+                                      value={line.purchasePrice}
+                                      onChange={(e) => {
+                                        const nextValue = e.target.value === "" ? null : Number(e.target.value);
+                                        updateLine(index, { purchasePrice: nextValue });
+                                      }}
+                                    />
+                                  )}
+                                </td>
+                                <td className="cell-right">
+                                  {line.purchasePercentage == null ? (
+                                    <span className="text-muted">-</span>
+                                  ) : (
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      max="100"
+                                      value={line.purchasePercentage}
+                                      onChange={(e) => {
+                                        const nextValue = e.target.value === "" ? null : Number(e.target.value);
+                                        updateLine(index, { purchasePercentage: nextValue });
+                                      }}
+                                    />
+                                  )}
+                                </td>
+                                <td className="cell-right">
+                                  {line.sellPercentage == null ? (
+                                    <span className="text-muted">-</span>
+                                  ) : (
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      max="100"
+                                      value={line.sellPercentage}
+                                      onChange={(e) => {
+                                        const nextValue = e.target.value === "" ? null : Number(e.target.value);
+                                        updateLine(index, { sellPercentage: nextValue });
+                                      }}
+                                    />
+                                  )}
+                                </td>
+                                <td className="cell-right">
                                   <input
                                     type="number"
                                     step="0.001"
@@ -523,18 +547,6 @@ export default function BillsPage() {
                                     onChange={(e) => {
                                       const nextValue = e.target.value === "" ? 0 : Number(e.target.value);
                                       updateLine(index, { unitPrice: nextValue });
-                                    }}
-                                  />
-                                </td>
-                                <td className="cell-right">
-                                  <input
-                                    type="number"
-                                    step="0.001"
-                                    min="0"
-                                    value={line.discountPerUnit === 0 ? "" : line.discountPerUnit}
-                                    onChange={(e) => {
-                                      const nextValue = e.target.value === "" ? 0 : Number(e.target.value);
-                                      updateLine(index, { discountPerUnit: nextValue });
                                     }}
                                   />
                                 </td>
@@ -685,7 +697,6 @@ export default function BillsPage() {
                                             <th className="cell-center">Unit</th>
                                             <th className="cell-center">Qty</th>
                                             <th className="cell-center">Unit Price (KWD)</th>
-                                            <th className="cell-center">Discount/Unit</th>
                                             <th className="cell-center">Subtotal</th>
                                             <th className="cell-center">Profit (KWD)</th>
                                           </tr>
@@ -709,7 +720,6 @@ export default function BillsPage() {
                                                 <td className="cell-center">{item.unit}</td>
                                                 <td className="cell-center">{item.quantity}</td>
                                                 <td className="cell-center">{item.unitPrice.toFixed(3)}</td>
-                                                <td className="cell-center">{getDiscountPerUnit(item).toFixed(3)}</td>
                                                 <td className="cell-center">{lineSubtotal.toFixed(3)}</td>
                                                 <td className="cell-center">{lineProfit === null ? "—" : lineProfit.toFixed(3)}</td>
                                               </tr>

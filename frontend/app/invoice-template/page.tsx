@@ -98,7 +98,6 @@ export default function InvoiceTemplatePage() {
               <th className="col-unit">Unit</th>
               <th className="col-qty">Qty.</th>
               <th className="col-price">Unit Price (KWD)</th>
-              <th className="col-discount">Discount/Unit</th>
               <th className="col-subtotal">Subtotal (KWD)</th>
               <th className="col-profit">Profit (KWD)</th>
             </tr>
@@ -113,13 +112,12 @@ export default function InvoiceTemplatePage() {
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
-                <td>&nbsp;</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={6} className="total-label">Total KWD</td>
+              <td colSpan={5} className="total-label">Total KWD</td>
               <td className="col-subtotal">{totalKwd}</td>
               <td className="col-profit">&nbsp;</td>
             </tr>

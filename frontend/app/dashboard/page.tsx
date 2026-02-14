@@ -21,7 +21,6 @@ type BillItem = {
   quantity: number;
   buyingPrice?: number | null;
   unitPrice: number;
-  baseSellingPrice: number;
 };
 
 type BillDetail = Bill & {
@@ -157,7 +156,6 @@ export default function DashboardPage() {
                 <tbody>
                   {recentBills.map((bill) => {
                     const detail = billDetails[bill.id];
-                    const getDiscountPerUnit = (item: BillItem) => Math.max(0, item.baseSellingPrice - item.unitPrice);
                     const getLineProfit = (item: BillItem) => item.buyingPrice != null
                       ? (item.unitPrice - item.buyingPrice) * item.quantity
                       : null;
@@ -187,7 +185,6 @@ export default function DashboardPage() {
                                       <th className="cell-center">Unit</th>
                                       <th className="cell-center">Qty</th>
                                       <th className="cell-center">Unit Price (KWD)</th>
-                                      <th className="cell-center">Discount/Unit</th>
                                       <th className="cell-center">Subtotal</th>
                                       <th className="cell-center">Profit (KWD)</th>
                                     </tr>
@@ -211,7 +208,6 @@ export default function DashboardPage() {
                                           <td className="cell-center">{item.unit}</td>
                                           <td className="cell-center">{item.quantity}</td>
                                           <td className="cell-center">{item.unitPrice.toFixed(3)}</td>
-                                          <td className="cell-center">{getDiscountPerUnit(item).toFixed(3)}</td>
                                           <td className="cell-center">{lineSubtotal.toFixed(3)}</td>
                                           <td className="cell-center">{lineProfit === null ? "—" : lineProfit.toFixed(3)}</td>
                                         </tr>

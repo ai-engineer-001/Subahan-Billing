@@ -13,7 +13,6 @@ type BillItem = {
   quantity: number;
   buyingPrice?: number | null;
   unitPrice: number;
-  baseSellingPrice: number;
 };
 
 type Bill = {
@@ -182,12 +181,7 @@ export default function PrintPage({
           <br />
           Unit Price
         </th>
-        <th colSpan={2} style={{ width: '17%', border: '1px solid #6b5440', background: '#f7f0e2', padding: '5px 4px' }}>
-          الخصم
-          <br />
-          Discount
-        </th>
-        <th colSpan={2} style={{ width: '19%', border: '1px solid #6b5440', background: '#f7f0e2', padding: '5px 4px' }}>
+        <th colSpan={2} style={{ width: '36%', border: '1px solid #6b5440', background: '#f7f0e2', padding: '5px 4px' }}>
           المبلغ الاجمالي
           <br />
           Total Amount
@@ -214,25 +208,13 @@ export default function PrintPage({
           <br />
           Fils
         </th>
-        <th style={{ border: '1px solid #6b5440', background: '#f7f0e2', padding: '5px 4px' }}>
-          دينار
-          <br />
-          K.D.
-        </th>
-        <th style={{ border: '1px solid #6b5440', background: '#f7f0e2', padding: '5px 4px' }}>
-          فلس
-          <br />
-          Fils
-        </th>
       </tr>
     </thead>
   );
 
   const renderRow = (item: BillItem, idx: number) => {
-    const discount = (item.baseSellingPrice - item.unitPrice) * item.quantity;
     const lt = item.unitPrice * item.quantity;
     const ps = splitKD(item.unitPrice);
-    const ds = splitKD(discount);
     const ts = splitKD(lt);
     const bg = idx % 2 === 0 ? '#fff' : '#fdfaf4';
     const s = { border: '1px solid #6b5440', height: 26, background: bg, textAlign: 'center' as const } as React.CSSProperties;
@@ -246,8 +228,6 @@ export default function PrintPage({
         <td style={s}>{item.quantity}</td>
         <td style={s}>{ps.kd}</td>
         <td style={s}>{ps.fils}</td>
-        <td style={s}>{ds.kd}</td>
-        <td style={s}>{ds.fils}</td>
         <td style={s}>{ts.kd}</td>
         <td style={s}>{ts.fils}</td>
       </tr>
@@ -258,8 +238,6 @@ export default function PrintPage({
   const emptyRows = (n: number) =>
     Array.from({ length: Math.max(0, n) }).map((_, i) => (
       <tr key={`e${i}`} className="empty-row">
-        <td style={{border:B,height:26,background:i%2===0?'#fff':'#fdfaf4'}}>&nbsp;</td>
-        <td style={{border:B,height:26,background:i%2===0?'#fff':'#fdfaf4'}}>&nbsp;</td>
         <td style={{border:B,height:26,background:i%2===0?'#fff':'#fdfaf4'}}>&nbsp;</td>
         <td style={{border:B,height:26,background:i%2===0?'#fff':'#fdfaf4'}}>&nbsp;</td>
         <td style={{border:B,height:26,background:i%2===0?'#fff':'#fdfaf4'}}>&nbsp;</td>

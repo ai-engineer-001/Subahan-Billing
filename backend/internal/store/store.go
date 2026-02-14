@@ -213,7 +213,6 @@ func (s *Store) CreateBill(ctx context.Context, input BillCreate) (Bill, error) 
 			Quantity:         line.Quantity,
 			BuyingPrice:      buyingPrice,
 			UnitPrice:        unitPrice,
-			BaseSellingPrice: sellingPrice,
 		})
 	}
 
@@ -223,7 +222,7 @@ func (s *Store) CreateBill(ctx context.Context, input BillCreate) (Bill, error) 
 	}
 
 	for i := range items {
-		row := tx.QueryRow(ctx, "INSERT INTO bill_items (bill_id, item_id, item_name, item_name_ar, quantity, unit_price, base_selling_price) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id", bill.ID, items[i].ItemID, items[i].ItemName, items[i].ArabicName, items[i].Quantity, items[i].UnitPrice, items[i].BaseSellingPrice)
+		row := tx.QueryRow(ctx, "INSERT INTO bill_items (bill_id, item_id, item_name, item_name_ar, quantity, unit_price) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id", bill.ID, items[i].ItemID, items[i].ItemName, items[i].ArabicName, items[i].Quantity, items[i].UnitPrice)
 		if err := row.Scan(&items[i].ID); err != nil {
 			return bill, err
 		}
@@ -274,7 +273,7 @@ func (s *Store) GetBill(ctx context.Context, billID string) (Bill, error) {
 		SELECT bi.id, bi.bill_id, bi.item_id, bi.item_name,
 		       COALESCE(bi.item_name_ar, i.arabic_name, '') as item_name_ar,
 		       COALESCE(i.unit, 'pcs') as unit,
-		       bi.quantity, i.buying_price, bi.unit_price, bi.base_selling_price
+		       bi.quantity, i.buying_price, bi.unit_price
 		FROM bill_items bi
 		LEFT JOIN items i ON bi.item_id = i.item_id
 		WHERE bi.bill_id=$1 
@@ -288,7 +287,7 @@ func (s *Store) GetBill(ctx context.Context, billID string) (Bill, error) {
 	items := []BillItem{}
 	for rows.Next() {
 		var item BillItem
-		if err := rows.Scan(&item.ID, &item.BillID, &item.ItemID, &item.ItemName, &item.ArabicName, &item.Unit, &item.Quantity, &item.BuyingPrice, &item.UnitPrice, &item.BaseSellingPrice); err != nil {
+		if err := rows.Scan(&item.ID, &item.BillID, &item.ItemID, &item.ItemName, &item.ArabicName, &item.Unit, &item.Quantity, &item.BuyingPrice, &item.UnitPrice); err != nil {
 			return bill, err
 		}
 		items = append(items, item)

@@ -48,7 +48,6 @@ type BillItem struct {
 	Quantity         int      `json:"quantity"`
 	BuyingPrice      *float64 `json:"buyingPrice"`
 	UnitPrice        float64  `json:"unitPrice"`
-	BaseSellingPrice float64  `json:"baseSellingPrice"`
 }
 
 type BillItemCreate struct {

@@ -20,6 +20,9 @@ var addArabicNameSQL string
 //go:embed 004_add_wire_box_fields.sql
 var addWireBoxFieldsSQL string
 
+//go:embed 005_remove_bill_item_discount.sql
+var removeBillItemDiscountSQL string
+
 func Run(ctx context.Context, pool *pgxpool.Pool) error {
 	log.Println("Running database migrations...")
 
@@ -36,6 +39,10 @@ func Run(ctx context.Context, pool *pgxpool.Pool) error {
 	}
 
 	if _, err := pool.Exec(ctx, addWireBoxFieldsSQL); err != nil {
+		return err
+	}
+
+	if _, err := pool.Exec(ctx, removeBillItemDiscountSQL); err != nil {
 		return err
 	}
 

@@ -889,15 +889,6 @@ export default function ItemsPage() {
                           marginTop: "var(--space-3)",
                           border: "1px solid var(--success)"
                         }}>
-                          <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "var(--space-2)" }}>
-                            <strong>Calculation:</strong>
-                            <br />
-                            • Actual Purchase Cost = {form.buyingPrice} × (1 - {form.purchasePercentage || 0}%) = {(Number(form.buyingPrice) * (1 - Number(form.purchasePercentage || 0) / 100)).toFixed(3)} KWD
-                            <br />
-                            • Selling Price = {form.buyingPrice} × (1 - {form.sellPercentage}%) = {(Number(form.buyingPrice) * (1 - Number(form.sellPercentage) / 100)).toFixed(3)} KWD
-                            <br />
-                            • Profit = {((Number(form.buyingPrice) * (1 - Number(form.sellPercentage) / 100)) - (Number(form.buyingPrice) * (1 - Number(form.purchasePercentage || 0) / 100))).toFixed(3)} KWD
-                          </div>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "var(--space-2)", borderTop: "1px solid var(--border-color)" }}>
                             <span style={{ fontWeight: "500", color: "var(--text-primary)" }}>
                               Final Selling Price:
