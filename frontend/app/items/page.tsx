@@ -653,7 +653,7 @@ export default function ItemsPage() {
                         type="text"
                         value={form.itemId}
                         maxLength={100}
-                        ref={(el) => (inputRefs.current['itemId'] = el)}
+                        ref={(el) => { inputRefs.current['itemId'] = el; }}
                         onChange={(e) => {
                           handleInputChange('itemId', e.target.value);
                           setIdCheckMessage(null);
@@ -692,7 +692,7 @@ export default function ItemsPage() {
                       <input
                         type="text"
                         value={form.name}
-                        ref={(el) => (inputRefs.current['name'] = el)}
+                        ref={(el) => { inputRefs.current['name'] = el; }}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         onBlur={handleNameBlur}
                         placeholder="e.g., Coca Cola 330ml"
@@ -708,7 +708,7 @@ export default function ItemsPage() {
                       <input
                         type="text"
                         value={form.arabicName || ""}
-                        ref={(el) => (inputRefs.current['arabicName'] = el)}
+                        ref={(el) => { inputRefs.current['arabicName'] = el; }}
                         onChange={(e) => handleInputChange('arabicName', e.target.value)}
                         placeholder="مثال: كوكاكولا 330 مل"
                         dir="rtl"
@@ -744,7 +744,7 @@ export default function ItemsPage() {
                       type="number"
                       step="0.001"
                       value={form.buyingPrice || ""}
-                      ref={(el) => (inputRefs.current['buyingPrice'] = el)}
+                      ref={(el) => { inputRefs.current['buyingPrice'] = el; }}
                       onChange={(e) => handleInputChange('buyingPrice', e.target.value)}
                       placeholder="0.000 KWD"
                     />
@@ -762,7 +762,7 @@ export default function ItemsPage() {
                       type="number"
                       step="0.001"
                       value={form.sellingPrice || ""}
-                      ref={(el) => (inputRefs.current['sellingPrice'] = el)}
+                      ref={(el) => { inputRefs.current['sellingPrice'] = el; }}
                       onChange={(e) => handleInputChange('sellingPrice', e.target.value)}
                       placeholder="0.000 KWD"
                       required
