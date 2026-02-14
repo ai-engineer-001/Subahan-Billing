@@ -711,7 +711,7 @@ export default function PrintPage({
                   <tbody>
                     <tr>
                       <td className="hdr-en">
-                        <h2>SUBAHAN Co.</h2>
+                        <h2>SUBHAN Co.</h2>
                         <p>
                           <b>Electrical Equipments</b>
                         </p>

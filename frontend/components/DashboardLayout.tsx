@@ -159,7 +159,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
           <div className="header-actions">
             <div className="user-badge">
-              <span>Subahaan</span>
+              <span>Subhan</span>
             </div>
           </div>
         </header>
