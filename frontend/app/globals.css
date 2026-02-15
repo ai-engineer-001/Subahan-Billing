@@ -1407,7 +1407,7 @@ button:disabled, .btn:disabled {
   font-size: 14px;
 }
 
-.alert-error {
+.alert.error {
   background: var(--danger-bg);
   color: var(--danger);
   border: 1px solid var(--danger);
@@ -1423,6 +1423,13 @@ button:disabled, .btn:disabled {
   background: var(--success-bg);
   color: var(--success);
   border: 1px solid var(--success);
+}
+
+.alert.info {
+  background: var(--info-bg);
+  color: var(--info);
+  border: 1px solid var(--info);
+  margin-top: 0;
 }
 
 .notice {

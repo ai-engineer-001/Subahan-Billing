@@ -65,6 +65,7 @@ export default function BillsPage() {
   const [activePanel, setActivePanel] = useState<"create" | "recent">("create");
   const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null);
   const [billSearchQuery, setBillSearchQuery] = useState("");
+  const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [loadingBills, setLoadingBills] = useState(false);
   const [loadingMoreBills, setLoadingMoreBills] = useState(false);
   const [hasMoreBills, setHasMoreBills] = useState(true);
@@ -186,12 +187,17 @@ export default function BillsPage() {
       return;
     }
 
+    // Only save draft when creating a new bill, not when editing
+    if (editingBillId) {
+      return;
+    }
+
     const draft = {
       customer,
       lines
     };
     sessionStorage.setItem(draftKey, JSON.stringify(draft));
-  }, [customer, lines]);
+  }, [customer, lines, editingBillId]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -283,6 +289,43 @@ export default function BillsPage() {
     ? (item.unitPrice - item.buyingPrice) * item.quantity
     : null;
 
+  const handleEditBill = (billId: string) => {
+    const detail = billDetails[billId];
+    if (!detail) return;
+
+    // Clear any existing draft when starting to edit
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem(draftKey);
+    }
+
+    setCustomer(detail.customer ?? "");
+    setLines(
+      detail.items.map((item) => {
+        const catalogItem = items.find((i) => i.itemId === item.itemId);
+        return {
+          itemId: item.itemId,
+          quantity: item.quantity,
+          purchasePrice: item.buyingPrice ?? catalogItem?.buyingPrice ?? null,
+          purchasePercentage: catalogItem?.purchasePercentage ?? null,
+          sellPercentage: catalogItem?.sellPercentage ?? null,
+          unitPrice: item.unitPrice,
+          searchTerm: "",
+        };
+      })
+    );
+    setEditingBillId(billId);
+    setActivePanel("create");
+    setStatus(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingBillId(null);
+    setCustomer("");
+    setLines([{ itemId: "", quantity: 1, purchasePrice: null, purchasePercentage: null, sellPercentage: null, unitPrice: 0, searchTerm: "" }]);
+    setStatus(null);
+    // Draft will be saved again via useEffect when form resets
+  };
+
   const handleCreateBill = async () => {
     setStatus(null);
     try {
@@ -302,20 +345,29 @@ export default function BillsPage() {
         return;
       }
 
-      await apiFetch("/bills", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
+      if (editingBillId) {
+        await apiFetch(`/bills/${editingBillId}`, {
+          method: "PUT",
+          body: JSON.stringify(payload)
+        });
+      } else {
+        await apiFetch("/bills", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+      }
 
+      const wasEditing = editingBillId;
+      setEditingBillId(null);
       setCustomer("");
       setLines([{ itemId: "", quantity: 1, purchasePrice: null, purchasePercentage: null, sellPercentage: null, unitPrice: 0, searchTerm: "" }]);
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(draftKey);
       }
       await loadBills(true);
-      setStatus("Bill created successfully");
+      setStatus(wasEditing ? "Bill updated successfully" : "Bill created successfully");
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Failed to create bill");
+      setStatus(err instanceof Error ? err.message : (editingBillId ? "Failed to update bill" : "Failed to create bill"));
     }
   };
 
@@ -346,7 +398,7 @@ export default function BillsPage() {
               <div className="card-title-group">
                 <Icons.Receipt className="card-icon" />
                 <h2 className="card-title">
-                  {activePanel === "create" ? "Create New Bill" : "Recent Bills"}
+                  {activePanel === "create" ? (editingBillId ? "Edit Bill" : "Create New Bill") : "Recent Bills"}
                 </h2>
               </div>
               <div className="segmented-toggle" role="tablist" aria-label="Bill panels">
@@ -375,6 +427,12 @@ export default function BillsPage() {
             <div className="card-body">
               {activePanel === "create" && (
                 <>
+                  {editingBillId && (
+                    <div className="alert info" style={{ marginBottom: "var(--space-4)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-2)" }}>
+                      <span>Editing bill <strong>{editingBillId.slice(0, 8)}...</strong></span>
+                      <button type="button" className="btn btn-sm btn-outline" onClick={handleCancelEdit}>Cancel</button>
+                    </div>
+                  )}
                   <div className="form-group">
                     <label className="form-label">Customer Name (optional)</label>
                     <input
@@ -583,14 +641,25 @@ export default function BillsPage() {
                   )}
 
                   <div className="card-section">
-                    <button
-                      className="btn btn-primary btn-block"
-                      onClick={handleCreateBill}
-                      disabled={!hasSelectedItems}
-                    >
-                      <Icons.Check className="btn-icon" />
-                      <span>Create Bill</span>
-                    </button>
+                    <div style={{ display: "flex", gap: "var(--space-3)" }}>
+                      {editingBillId && (
+                        <button
+                          className="btn btn-outline"
+                          onClick={handleCancelEdit}
+                          type="button"
+                        >
+                          <span>Cancel Edit</span>
+                        </button>
+                      )}
+                      <button
+                        className="btn btn-primary btn-block"
+                        onClick={handleCreateBill}
+                        disabled={!hasSelectedItems}
+                      >
+                        <Icons.Check className="btn-icon" />
+                        <span>{editingBillId ? "Update Bill" : "Create Bill"}</span>
+                      </button>
+                    </div>
                   </div>
 
                   {status && (
@@ -669,6 +738,15 @@ export default function BillsPage() {
                                 <td>{new Date(bill.createdAt).toLocaleDateString()}</td>
                                 <td>
                                   <div className="btn-group">
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-outline"
+                                      onClick={() => handleEditBill(bill.id)}
+                                      disabled={!billDetails[bill.id]}
+                                    >
+                                      <Icons.Edit className="btn-icon-sm" />
+                                      <span>Edit</span>
+                                    </button>
                                     <a href={`/print/${bill.id}`} className="btn btn-sm btn-primary">
                                       <Icons.Printer className="btn-icon-sm" />
                                       <span>Print</span>

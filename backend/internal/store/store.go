@@ -296,6 +296,88 @@ func (s *Store) GetBill(ctx context.Context, billID string) (Bill, error) {
 	return bill, rows.Err()
 }
 
+func (s *Store) UpdateBill(ctx context.Context, billID string, input BillCreate) (Bill, error) {
+	bill := Bill{}
+	if len(input.Items) == 0 {
+		return bill, errors.New("bill has no items")
+	}
+
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return bill, err
+	}
+	defer tx.Rollback(ctx)
+
+	// Verify bill exists
+	var existingID string
+	if err := tx.QueryRow(ctx, "SELECT id FROM bills WHERE id=$1", billID).Scan(&existingID); err != nil {
+		return bill, ErrNotFound
+	}
+
+	// Delete old bill items
+	if _, err := tx.Exec(ctx, "DELETE FROM bill_items WHERE bill_id=$1", billID); err != nil {
+		return bill, err
+	}
+
+	// Build new items
+	items := []BillItem{}
+	var total float64
+
+	for _, line := range input.Items {
+		if line.Quantity <= 0 {
+			return bill, errors.New("quantity must be positive")
+		}
+
+		var itemID, name, arabicName string
+		var sellingPrice float64
+		var buyingPrice *float64
+		row := tx.QueryRow(ctx, "SELECT item_id, name, arabic_name, buying_price, selling_price FROM items WHERE item_id=$1 AND deleted_at IS NULL", line.ItemID)
+		if err := row.Scan(&itemID, &name, &arabicName, &buyingPrice, &sellingPrice); err != nil {
+			return bill, ErrNotFound
+		}
+
+		unitPrice := sellingPrice
+		if line.UnitPrice != nil {
+			unitPrice = *line.UnitPrice
+		}
+
+		lineTotal := unitPrice * float64(line.Quantity)
+		total += lineTotal
+
+		items = append(items, BillItem{
+			ItemID:      itemID,
+			ItemName:    name,
+			ArabicName:  arabicName,
+			Quantity:    line.Quantity,
+			BuyingPrice: buyingPrice,
+			UnitPrice:   unitPrice,
+		})
+	}
+
+	// Update the bill row
+	row := tx.QueryRow(ctx, "UPDATE bills SET customer_name=$2, total_amount=$3, updated_at=now() WHERE id=$1 RETURNING id, customer_name, total_amount, created_at, updated_at", billID, input.Customer, total)
+	if err := row.Scan(&bill.ID, &bill.Customer, &bill.TotalAmount, &bill.CreatedAt, &bill.UpdatedAt); err != nil {
+		return bill, err
+	}
+
+	// Insert new bill items
+	for i := range items {
+		row := tx.QueryRow(ctx, "INSERT INTO bill_items (bill_id, item_id, item_name, item_name_ar, quantity, unit_price) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id", bill.ID, items[i].ItemID, items[i].ItemName, items[i].ArabicName, items[i].Quantity, items[i].UnitPrice)
+		if err := row.Scan(&items[i].ID); err != nil {
+			return bill, err
+		}
+		items[i].BillID = bill.ID
+	}
+
+	bill.Items = items
+
+	if err := tx.Commit(ctx); err != nil {
+		return bill, err
+	}
+
+	return bill, nil
+}
+
 func (s *Store) DeleteBill(ctx context.Context, billID string) error {
 	cmd, err := s.db.Exec(ctx, "DELETE FROM bills WHERE id=$1", billID)
 	if err != nil {

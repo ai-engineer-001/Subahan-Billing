@@ -39,17 +39,17 @@ type Bill struct {
 }
 
 type BillItem struct {
-	ID          string   `json:"id"`
-	BillID      string   `json:"billId"`
-	ItemID      string   `json:"itemId"`
-	ItemName    string   `json:"itemName"`
-	ArabicName  string   `json:"arabicName"`
-	Unit        string   `json:"unit"`
-	Quantity    int      `json:"quantity"`
-	BuyingPrice *float64 `json:"buyingPrice"`
+	ID                 string   `json:"id"`
+	BillID             string   `json:"billId"`
+	ItemID             string   `json:"itemId"`
+	ItemName           string   `json:"itemName"`
+	ArabicName         string   `json:"arabicName"`
+	Unit               string   `json:"unit"`
+	Quantity           int      `json:"quantity"`
+	BuyingPrice        *float64 `json:"buyingPrice"`
 	PurchasePercentage *float64 `json:"purchasePercentage"`
 	SellPercentage     *float64 `json:"sellPercentage"`
-	UnitPrice   float64  `json:"unitPrice"`
+	UnitPrice          float64  `json:"unitPrice"`
 }
 
 type BillItemCreate struct {

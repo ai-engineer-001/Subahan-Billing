@@ -94,15 +94,6 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="stats-grid">
-          <div className="stat-card blue">
-            <div className="stat-icon">
-              <Icons.Package className="icon" />
-            </div>
-            <div className="stat-content">
-              <div className="stat-label">Active Items</div>
-              <div className="stat-value">{stats.activeItems}</div>
-            </div>
-          </div>
           <div className="stat-card green">
             <div className="stat-icon">
               <Icons.FileText className="icon" />
@@ -110,15 +101,6 @@ export default function DashboardPage() {
             <div className="stat-content">
               <div className="stat-label">Total Items</div>
               <div className="stat-value">{stats.totalItems}</div>
-            </div>
-          </div>
-          <div className="stat-card purple">
-            <div className="stat-icon">
-              <Icons.Receipt className="icon" />
-            </div>
-            <div className="stat-content">
-              <div className="stat-label">Recent Bills</div>
-              <div className="stat-value">{stats.recentBills}</div>
             </div>
           </div>
           <div className="stat-card orange">

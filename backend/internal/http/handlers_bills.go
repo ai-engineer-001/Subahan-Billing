@@ -64,6 +64,31 @@ func (s *Server) handleGetBill(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, bill)
 }
 
+func (s *Server) handleUpdateBill(w http.ResponseWriter, r *http.Request) {
+	billID := chi.URLParam(r, "billId")
+	var input store.BillCreate
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid payload")
+		return
+	}
+	if len(input.Items) == 0 {
+		writeError(w, http.StatusBadRequest, "bill items are required")
+		return
+	}
+
+	bill, err := s.Store.UpdateBill(r.Context(), billID, input)
+	if err != nil {
+		if err == store.ErrNotFound {
+			writeError(w, http.StatusNotFound, "bill or item not found")
+			return
+		}
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, bill)
+}
+
 func (s *Server) handleDeleteBill(w http.ResponseWriter, r *http.Request) {
 	billID := chi.URLParam(r, "billId")
 	if err := s.Store.DeleteBill(r.Context(), billID); err != nil {
