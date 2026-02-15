@@ -207,12 +207,12 @@ func (s *Store) CreateBill(ctx context.Context, input BillCreate) (Bill, error) 
 		total += lineTotal
 
 		items = append(items, BillItem{
-			ItemID:           itemID,
-			ItemName:         name,
-			ArabicName:       arabicName,
-			Quantity:         line.Quantity,
-			BuyingPrice:      buyingPrice,
-			UnitPrice:        unitPrice,
+			ItemID:      itemID,
+			ItemName:    name,
+			ArabicName:  arabicName,
+			Quantity:    line.Quantity,
+			BuyingPrice: buyingPrice,
+			UnitPrice:   unitPrice,
 		})
 	}
 
@@ -273,7 +273,7 @@ func (s *Store) GetBill(ctx context.Context, billID string) (Bill, error) {
 		SELECT bi.id, bi.bill_id, bi.item_id, bi.item_name,
 		       COALESCE(bi.item_name_ar, i.arabic_name, '') as item_name_ar,
 		       COALESCE(i.unit, 'pcs') as unit,
-		       bi.quantity, i.buying_price, bi.unit_price
+		       bi.quantity, i.buying_price, i.purchase_percentage, i.sell_percentage, bi.unit_price
 		FROM bill_items bi
 		LEFT JOIN items i ON bi.item_id = i.item_id
 		WHERE bi.bill_id=$1 
@@ -287,7 +287,7 @@ func (s *Store) GetBill(ctx context.Context, billID string) (Bill, error) {
 	items := []BillItem{}
 	for rows.Next() {
 		var item BillItem
-		if err := rows.Scan(&item.ID, &item.BillID, &item.ItemID, &item.ItemName, &item.ArabicName, &item.Unit, &item.Quantity, &item.BuyingPrice, &item.UnitPrice); err != nil {
+		if err := rows.Scan(&item.ID, &item.BillID, &item.ItemID, &item.ItemName, &item.ArabicName, &item.Unit, &item.Quantity, &item.BuyingPrice, &item.PurchasePercentage, &item.SellPercentage, &item.UnitPrice); err != nil {
 			return bill, err
 		}
 		items = append(items, item)

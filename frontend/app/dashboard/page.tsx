@@ -20,6 +20,8 @@ type BillItem = {
   unit: string;
   quantity: number;
   buyingPrice?: number | null;
+  purchasePercentage?: number | null;
+  sellPercentage?: number | null;
   unitPrice: number;
 };
 
@@ -184,6 +186,9 @@ export default function DashboardPage() {
                                       <th>Item Name</th>
                                       <th className="cell-center">Unit</th>
                                       <th className="cell-center">Qty</th>
+                                      <th className="cell-center">Purchase Price</th>
+                                      <th className="cell-center">Purchase %</th>
+                                      <th className="cell-center">Selling %</th>
                                       <th className="cell-center">Unit Price (KWD)</th>
                                       <th className="cell-center">Subtotal</th>
                                       <th className="cell-center">Profit (KWD)</th>
@@ -207,6 +212,9 @@ export default function DashboardPage() {
                                           </td>
                                           <td className="cell-center">{item.unit}</td>
                                           <td className="cell-center">{item.quantity}</td>
+                                          <td className="cell-center">{item.buyingPrice != null ? item.buyingPrice.toFixed(3) : "-"}</td>
+                                          <td className="cell-center">{item.purchasePercentage != null ? `${item.purchasePercentage.toFixed(2)}%` : "-"}</td>
+                                          <td className="cell-center">{item.sellPercentage != null ? `${item.sellPercentage.toFixed(2)}%` : "-"}</td>
                                           <td className="cell-center">{item.unitPrice.toFixed(3)}</td>
                                           <td className="cell-center">{lineSubtotal.toFixed(3)}</td>
                                           <td className="cell-center">{lineProfit === null ? "—" : lineProfit.toFixed(3)}</td>

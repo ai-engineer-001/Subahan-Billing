@@ -341,7 +341,7 @@ export default function BillsPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="grid">
-          <div className="card">
+          <div className="card bills-card">
             <div className="card-header">
               <div className="card-title-group">
                 <Icons.Receipt className="card-icon" />
@@ -471,8 +471,7 @@ export default function BillsPage() {
                                             className="item-search-option"
                                             onClick={() => handleSelectItem(index, item.itemId)}
                                           >
-                                            <span className="item-search-id">{item.itemId}</span>
-                                            <span className="item-search-name">{item.name}</span>
+                                            <span className="item-search-combined">{item.itemId} — {item.name}</span>
                                           </button>
                                         ))}
                                       </div>
@@ -625,7 +624,7 @@ export default function BillsPage() {
                         <p style={{ marginTop: "var(--space-3)" }}>Loading bills...</p>
                       </div>
                     ) : (
-                      <div className="table-container" ref={billsContainerRef} style={{ maxHeight: "calc(100vh - 450px)", overflowY: "auto" }}>
+                      <div className="table-container bills-recent-table-container" ref={billsContainerRef}>
                       <table className="table">
                       <thead>
                         <tr>

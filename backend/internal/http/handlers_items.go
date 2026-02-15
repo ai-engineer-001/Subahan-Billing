@@ -75,7 +75,7 @@ func (s *Server) handleCreateItem(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "arabicName is required")
 		return
 	}
-	
+
 	// Validate based on Wire/Box mode
 	if input.IsWireBox {
 		// Wire/Box mode: base purchase price and percentages are required
@@ -111,7 +111,7 @@ func (s *Server) handleCreateItem(w http.ResponseWriter, r *http.Request) {
 		input.PurchasePercentage = nil
 		input.SellPercentage = nil
 	}
-	
+
 	if strings.TrimSpace(input.Unit) == "" {
 		input.Unit = "pcs"
 	}
@@ -142,7 +142,7 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "arabicName is required")
 		return
 	}
-	
+
 	// Validate based on Wire/Box mode
 	if input.IsWireBox {
 		// Wire/Box mode: base purchase price and percentages are required

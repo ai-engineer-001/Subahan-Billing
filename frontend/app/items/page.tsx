@@ -531,8 +531,10 @@ export default function ItemsPage() {
                           <th>Item ID</th>
                           <th>Name</th>
                           <th>Unit</th>
-                          <th>Purchase</th>
-                          <th>Selling</th>
+                          <th>Purchase Price</th>
+                          <th>Purchase %</th>
+                          <th>Selling %</th>
+                          <th>Selling Price</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
@@ -549,24 +551,32 @@ export default function ItemsPage() {
                               <span className="badge">{item.unit}</span>
                             </td>
                             <td>
-                              {item.isWireBox ? (
-                                <span className="badge" style={{ backgroundColor: "var(--info)", color: "white" }}>
-                                  {item.purchasePercentage?.toFixed(2)}%
-                                </span>
-                              ) : item.buyingPrice ? (
+                              {item.buyingPrice != null ? (
                                 <span className="price">{item.buyingPrice.toFixed(3)} KWD</span>
                               ) : (
                                 <span className="text-muted">—</span>
                               )}
                             </td>
                             <td>
-                              {item.isWireBox ? (
-                                <span className="badge" style={{ backgroundColor: "var(--success)", color: "white" }}>
-                                  {item.sellPercentage?.toFixed(2)}%
+                              {item.purchasePercentage != null ? (
+                                <span className="badge" style={{ backgroundColor: "var(--info)", color: "white" }}>
+                                  {item.purchasePercentage.toFixed(2)}%
                                 </span>
                               ) : (
-                                <span className="price primary">{item.sellingPrice.toFixed(3)} KWD</span>
+                                <span className="text-muted">—</span>
                               )}
+                            </td>
+                            <td>
+                              {item.sellPercentage != null ? (
+                                <span className="badge" style={{ backgroundColor: "var(--success)", color: "white" }}>
+                                  {item.sellPercentage.toFixed(2)}%
+                                </span>
+                              ) : (
+                                <span className="text-muted">—</span>
+                              )}
+                            </td>
+                            <td>
+                              <span className="price primary">{item.sellingPrice.toFixed(3)} KWD</span>
                             </td>
                             <td>
                               <div className="btn-group">
@@ -638,6 +648,9 @@ export default function ItemsPage() {
                             <th>Item ID</th>
                             <th>Name</th>
                             <th>Unit</th>
+                            <th>Purchase Price</th>
+                            <th>Purchase %</th>
+                            <th>Selling %</th>
                             <th>Selling Price</th>
                             <th>Deleted At</th>
                             <th>Actions</th>
@@ -654,6 +667,31 @@ export default function ItemsPage() {
                               </td>
                               <td>
                                 <span className="badge">{item.unit}</span>
+                              </td>
+                              <td>
+                                {item.buyingPrice != null ? (
+                                  <span className="price">{item.buyingPrice.toFixed(3)} KWD</span>
+                                ) : (
+                                  <span className="text-muted">—</span>
+                                )}
+                              </td>
+                              <td>
+                                {item.purchasePercentage != null ? (
+                                  <span className="badge" style={{ backgroundColor: "var(--info)", color: "white" }}>
+                                    {item.purchasePercentage.toFixed(2)}%
+                                  </span>
+                                ) : (
+                                  <span className="text-muted">—</span>
+                                )}
+                              </td>
+                              <td>
+                                {item.sellPercentage != null ? (
+                                  <span className="badge" style={{ backgroundColor: "var(--success)", color: "white" }}>
+                                    {item.sellPercentage.toFixed(2)}%
+                                  </span>
+                                ) : (
+                                  <span className="text-muted">—</span>
+                                )}
                               </td>
                               <td>
                                 <span className="price">{item.sellingPrice.toFixed(3)} KWD</span>
